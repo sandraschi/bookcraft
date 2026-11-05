@@ -1,0 +1,9 @@
+/target
+**/*.rs.bk
+*.bak
+*.bak.*
+outbox/
+data/
+.env
+.DS_Store
+Thumbs.db

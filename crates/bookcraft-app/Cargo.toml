@@ -1,0 +1,20 @@
+[package]
+name = "bookcraft-app"
+version = "0.3.0"
+edition = "2021"
+description = "L3 egui desktop shelf for BookCraft (calls bookcraft-core in-process)"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "bookcraft-app"
+path = "src/main.rs"
+
+[dependencies]
+bookcraft-core = { path = "../bookcraft-core" }
+serde_json = { workspace = true }
+rusqlite = { workspace = true }
+tempfile = { workspace = true }
+eframe = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "bookcraft-mcp"
+version = "0.3.0"
+edition = "2021"
+description = "L2 CLI-first binary and MCP stdio server for BookCraft"
+license = "MIT OR Apache-2.0"
+
+[[bin]]
+name = "bookcraft-cli"
+path = "src/main.rs"
+
+[dependencies]
+bookcraft-core = { path = "../bookcraft-core" }
+serde_json = { workspace = true }
+clap = { workspace = true }
+
+[lints]
+workspace = true
