@@ -131,6 +131,19 @@ clippy clean with `unwrap/expect/panic/todo/unimplemented` denied, tests green, 
 - `AGENTS.md` - containment rules for agents working here
 - `HANDOVER.md` - what was done, what is next, what was deliberately skipped
 
+## Status — does today / next week / non-goals
+
+**Does today:** v0.3.0, 3-tier (core/mcp/app); 15 MCP tools + 17 CLI
+verbs; 34 test fns; backup-before-write, trash-not-delete; PARITY docs;
+cutover made (BookCraft is the craft, rust-calibre-mcp stays the
+read-only dashboard).
+
+**Next week:** Phase B (catalog rename/merge, analytics, export);
+Calibre-version matrix; convert-roundtrip timing baseline.
+
+**Non-goals:** no cloud sync; no living-room-server scope creep — library
+manager, versioned honestly.
+
 ## Lineage — the Storytold craft-app pattern
 
 Storytold ArtCraft ([storytold/artcraft](https://github.com/storytold/artcraft) — "the IDE for artists") was the starting point. The 16 craft apps in the Storytold stable each ship one binary that is both the human CLI and the agent MCP server (stdio), headless-first, with `run.json` + report artifacts. That modus operandi and harness is what this repo implements; the code here is independent, the pattern is shared.
