@@ -29,10 +29,15 @@ MCP server use. No pixels are asserted; payloads are.
 | Stats | `stats` |
 | Convert | `convert` |
 | Ingest | `ingest_html` |
-| Manage | `update`, `add_book`, `remove_book`, `backup` |
+| Manage | `update`, `add_book`, `remove_book`, `backup`, `bulk_update` |
+| Catalog | `rename`, `duplicates`, `series_gaps`, `unread`, `reading_stats`, `collection_save/run/list/delete` |
+| Share | `export`, `excerpt`, `open`, `random` |
+| Read | `excerpt` (chapter prev/next, opened from any book card) |
 
 ## Known limits
 
-- Covers are shown as paths, not rendered images (no image crate yet).
-- `Library` caps the list at 100 books.
+- Covers decode from the library's own files (no downloads). Missing or unreadable
+  covers show no art rather than an error box; thumbnails cap at 360 px.
+- `Library` caps the list at 100 books; refine with search.
+- PDF and comics still open externally via `open`.
 - Empty states say what to do (set a library, press Refresh) instead of showing zeros.

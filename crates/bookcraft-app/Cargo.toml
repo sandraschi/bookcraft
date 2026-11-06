@@ -1,6 +1,6 @@
 [package]
 name = "bookcraft-app"
-version = "0.3.0"
+version = "0.5.0"
 edition = "2021"
 description = "L3 egui desktop shelf for BookCraft (calls bookcraft-core in-process)"
 license = "MIT OR Apache-2.0"

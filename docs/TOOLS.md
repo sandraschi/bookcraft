@@ -1,6 +1,6 @@
 # BookCraft MCP tools
 
-Fifteen tools, all routed through `bookcraft_core::dispatch`. Both `book_status` and
+Thirty tools, all routed through `bookcraft_core::dispatch`. Both `book_status` and
 `book.status` are accepted (strict MCP hosts reject dots, ArtCraft ids use them).
 
 Common optional arguments on every tool: `library` (Calibre directory or `metadata.db`),
@@ -22,8 +22,23 @@ set once in the client config.
 | `book_remove` | `id` (required), `permanent` | `book_id`, `title`, `permanent`, `files`, `backup` |
 | `book_add_format` | `id`, `file` (required) | `book_id`, `format`, `new`, `file`, `bytes`, `backup` |
 | `book_remove_format` | `id`, `format` (required) | `book_id`, `format`, `removed` |
+| `book_rename` | `kind` (`tag`/`author`/`series`/`publisher`), `old`, `new` (required) | `kind`, `from`, `to`, `merged`, `books`, `backup` |
+| `book_duplicates` | `limit` | `groups[]` with `title`, `count`, `books[]` |
+| `book_series_gaps` | - | `series[]` with `have`, `missing`, `volumes[]` |
+| `book_unread` | `limit` | `count`, `books[]`, `heuristic` |
+| `book_reading_stats` | - | `books`, `read`, `unread`, `ratings[]`, `added_by_year[]`, `top_tags[]`, `top_authors[]` |
+| `book_export` | `format` (`csv`/`json`), `out` (required), `query` | `output`, `format`, `count`, `bytes` |
+| `book_excerpt` | `id` (required), `format`, `chapter`, `chars`, `offset` | `book_id`, `title`, `format`, `chapters`, `chapter`, `chapter_file`, `text`, `has_more` |
+| `book_open` | `id` (required), `format` | `book_id`, `path`, `opened` |
+| `book_random` | `tag`, `author`, `format` | `book` (one random record) |
+| `book_collection_save` | `name`, `query` (required) | `name`, `query` |
+| `book_collection_list` | - | `names[]`, `collections{}` |
+| `book_collection_run` | `name` (required), `limit` | `name`, `query`, `count`, `books[]` |
+| `book_collection_delete` | `name` (required) | `name`, `deleted` |
+| `book_bulk_update` | `ids`, `fields` object (required) | `updated`, `books[]`, `backup` |
 | `book_convert` | `id`, `to`, `out_dir` (required), `from` | `output`, `bytes`, `from`, `to`, `engine`, `elapsed_ms` |
 | `book_ingest` | `html`, `out` (required), `title` | `title`, `source`, `output`, `words`, `bytes` |
+| `book_init` | - (uses `library`) | `library`, `created`, `backup` |
 
 ## Return shape
 
@@ -40,6 +55,8 @@ false. Nothing is returned as a binary blob.
 {"name":"book_info","arguments":{"id":14362}}
 {"name":"book_update","arguments":{"id":14362,"fields":{"tags":"sci-fi, classic","rating":4}}}
 {"name":"book_add","arguments":{"file":"D:/inbox/dune.txt","title":"Dune","authors":"Frank Herbert"}}
+{"name":"book_rename","arguments":{"kind":"tag","old":"sci-fi","new":"Science Fiction"}}
+{"name":"book_export","arguments":{"format":"csv","out":"D:/outbox/lib.csv"}}
 {"name":"book_convert","arguments":{"id":14362,"from":"EPUB","to":"txt","out_dir":"D:/outbox"}}
 {"name":"book_ingest","arguments":{"html":"tests/fixtures/sample-issue.html","out":"outbox/issue.md"}}
 ```
@@ -52,6 +69,10 @@ false. Nothing is returned as a binary blob.
 - Every mutation takes a timestamped backup outside the library first and reports it;
   `book_add` rejects duplicates unless `duplicates` or `automerge` is set.
 - `book_remove` moves files to a trash area by default; only `permanent: true` deletes.
+- `book_rename` merges when the new name exists (deduplicated re-link, then the old row
+  goes); the affected books keep correct sorts.
+- `book_excerpt` reads EPUB (paginated chapters) and TXT; PDF and comics are refused
+  honestly. `book_open` opens where the server runs, not where the agent sits.
 - `book_convert` needs Calibre. Without `ebook-convert` the call fails with `not_found`; it
   never fabricates an output file.
 - `book_grep` reports which engine answered. A library without `full-text-search.db` answers
