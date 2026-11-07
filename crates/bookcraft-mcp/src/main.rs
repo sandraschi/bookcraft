@@ -76,6 +76,8 @@ enum Commands {
         #[arg(long)]
         force: bool,
     },
+    /// Create a fresh Calibre-shaped library directory (refuses when one exists)
+    Init,
     /// Set metadata fields on one book (title, authors, tags, series, rating, ...)
     Update {
         #[arg(long)]
@@ -115,6 +117,95 @@ enum Commands {
         id: i64,
         #[arg(long)]
         permanent: bool,
+    },
+    /// Rename a tag, author, series or publisher (merges when the new name exists)
+    Rename {
+        #[arg(long)]
+        kind: String,
+        #[arg(long)]
+        old: String,
+        #[arg(long)]
+        new: String,
+    },
+    /// Books sharing a normalised title: duplicate candidates
+    Duplicates {
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+    },
+    /// Series with missing volume numbers
+    SeriesGaps,
+    /// Books never opened (or everything when the library has no tracking table)
+    Unread {
+        #[arg(long, default_value_t = 50)]
+        limit: usize,
+    },
+    /// Totals, read/unread split, rating histogram, additions by year, top tags/authors
+    ReadingStats,
+    /// Export the library (or one search) as CSV or JSON
+    Export {
+        #[arg(long)]
+        format: String,
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long)]
+        query: Option<String>,
+    },
+    /// Paginated chapter text from an EPUB (or a raw window from a TXT)
+    Excerpt {
+        #[arg(long)]
+        id: i64,
+        #[arg(long)]
+        format: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        chapter: usize,
+        #[arg(long, default_value_t = 2000)]
+        chars: usize,
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
+    },
+    /// Open the best file with the system default application
+    Open {
+        #[arg(long)]
+        id: i64,
+        #[arg(long)]
+        format: Option<String>,
+    },
+    /// A random book, optionally filtered by tag, author or format
+    Random {
+        #[arg(long)]
+        tag: Option<String>,
+        #[arg(long)]
+        author: Option<String>,
+        #[arg(long)]
+        format: Option<String>,
+    },
+    /// Save a named search (a smart collection)
+    CollectionSave {
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        query: String,
+    },
+    /// List saved searches
+    CollectionList,
+    /// Run a saved search
+    CollectionRun {
+        #[arg(long)]
+        name: String,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Delete a saved search
+    CollectionDelete {
+        #[arg(long)]
+        name: String,
+    },
+    /// Update the same fields on many books, all-or-nothing (ids: "1,2,3")
+    BulkUpdate {
+        #[arg(long)]
+        ids: String,
+        #[arg(long = "set")]
+        set: Vec<String>,
     },
     /// Attach one format file to a book (replaces the format when present)
     AddFormat {
@@ -175,6 +266,34 @@ macro_rules! out {
     ($($t:tt)*) => {
         emit(&format!($($t)*))
     };
+}
+
+/// Parse repeatable `--set key=value` pairs with scalar coercion
+/// (integers, floats and booleans travel typed; everything else stays a string).
+fn parse_fields(set: &[String]) -> Map<String, Value> {
+    let mut fields = Map::new();
+    for kv in set {
+        match kv.split_once('=') {
+            Some((k, v)) if !k.trim().is_empty() => {
+                let v = v.trim();
+                let value = v
+                    .parse::<i64>()
+                    .map(Value::from)
+                    .or_else(|_| v.parse::<f64>().map(Value::from))
+                    .unwrap_or_else(|_| match v.to_ascii_lowercase().as_str() {
+                        "true" => Value::Bool(true),
+                        "false" => Value::Bool(false),
+                        _ => json!(v),
+                    });
+                fields.insert(k.trim().to_string(), value);
+            }
+            _ => {
+                eprintln!("error: bad --set '{kv}'; use --set key=value");
+                std::process::exit(2);
+            }
+        }
+    }
+    fields
 }
 
 fn base_args(cli: &Cli) -> Map<String, Value> {
@@ -317,6 +436,117 @@ fn print_human(op: &str, value: &Value) {
             value["words"].as_i64().unwrap_or_default(),
             value["bytes"].as_i64().unwrap_or_default()
         ),
+        "rename" => out!(
+            "{} '{}' -> '{}' ({} book(s){}) backup {}",
+            value["kind"].as_str().unwrap_or(""),
+            value["from"].as_str().unwrap_or(""),
+            value["to"].as_str().unwrap_or(""),
+            value["books"].as_i64().unwrap_or_default(),
+            if value["merged"].as_bool().unwrap_or(false) {
+                ", merged"
+            } else {
+                ""
+            },
+            value["backup"].as_str().unwrap_or("")
+        ),
+        "duplicates" => {
+            out!(
+                "{} duplicate group(s)",
+                value["count"].as_i64().unwrap_or_default()
+            );
+            for group in value["groups"].as_array().into_iter().flatten() {
+                let ids: Vec<String> = group["books"]
+                    .as_array()
+                    .map(|b| {
+                        b.iter()
+                            .filter_map(|x| x["id"].as_i64().map(|n| n.to_string()))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                out!(
+                    "  {} ({}): {}",
+                    group["title"].as_str().unwrap_or(""),
+                    group["count"].as_i64().unwrap_or_default(),
+                    ids.join(", ")
+                );
+            }
+        }
+        "series_gaps" => {
+            out!("{} series", value["count"].as_i64().unwrap_or_default());
+            for series in value["series"].as_array().into_iter().flatten() {
+                let missing: Vec<String> = series["missing"]
+                    .as_array()
+                    .map(|m| {
+                        m.iter()
+                            .filter_map(Value::as_i64)
+                            .map(|n| n.to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                if !missing.is_empty() {
+                    out!(
+                        "  {}: missing {}",
+                        series["series"].as_str().unwrap_or(""),
+                        missing.join(", ")
+                    );
+                }
+            }
+        }
+        "unread" => {
+            out!(
+                "{} unread book(s)",
+                value["count"].as_i64().unwrap_or_default()
+            );
+            for book in value["books"].as_array().into_iter().flatten().take(20) {
+                print_book_line(book);
+            }
+        }
+        "reading_stats" => out!(
+            "{} books, {} read, {} unread",
+            value["books"].as_i64().unwrap_or_default(),
+            value["read"].as_i64().unwrap_or_default(),
+            value["unread"].as_i64().unwrap_or_default()
+        ),
+        "export" => out!(
+            "{} book(s) -> {} ({} bytes)",
+            value["count"].as_i64().unwrap_or_default(),
+            value["output"].as_str().unwrap_or(""),
+            value["bytes"].as_i64().unwrap_or_default()
+        ),
+        "excerpt" => {
+            out!(
+                "#{} {} (chapter {} of {}, {} chars{})",
+                value["book_id"].as_i64().unwrap_or_default(),
+                value["title"].as_str().unwrap_or(""),
+                value["chapter"].as_i64().unwrap_or_default(),
+                value["chapters"].as_i64().unwrap_or_default(),
+                value["text"].as_str().map(str::len).unwrap_or(0),
+                if value["has_more"].as_bool().unwrap_or(false) {
+                    ", more"
+                } else {
+                    ""
+                }
+            );
+            out!("{}", value["text"].as_str().unwrap_or(""));
+        }
+        "open" => out!("opened {}", value["path"].as_str().unwrap_or("")),
+        "random" => print_book_line(&value["book"]),
+        "collection_save" | "collection_list" | "collection_delete" | "bulk_update" => {
+            match serde_json::to_string_pretty(value) {
+                Ok(pretty) => out!("{pretty}"),
+                Err(_) => out!("{value}"),
+            }
+        }
+        "collection_run" => {
+            out!(
+                "{}: {} hit(s)",
+                value["name"].as_str().unwrap_or(""),
+                value["count"].as_i64().unwrap_or_default()
+            );
+            for book in value["books"].as_array().into_iter().flatten() {
+                print_book_line(book);
+            }
+        }
         _ => match serde_json::to_string_pretty(value) {
             Ok(pretty) => out!("{pretty}"),
             Err(_) => out!("{value}"),
@@ -345,31 +575,10 @@ fn run(cli: &Cli) -> i32 {
         Commands::Stats => ("stats", Vec::new()),
         Commands::Schema => ("schema", Vec::new()),
         Commands::Backup { force } => ("backup", vec![("force", json!(force))]),
+        Commands::Init => ("init", Vec::new()),
         Commands::Update { id, set } => {
             let mut pairs = vec![("id", json!(id))];
-            let mut fields = Map::new();
-            for kv in set {
-                match kv.split_once('=') {
-                    Some((k, v)) if !k.trim().is_empty() => {
-                        let v = v.trim();
-                        let value = v
-                            .parse::<i64>()
-                            .map(Value::from)
-                            .or_else(|_| v.parse::<f64>().map(Value::from))
-                            .unwrap_or_else(|_| match v.to_ascii_lowercase().as_str() {
-                                "true" => Value::Bool(true),
-                                "false" => Value::Bool(false),
-                                _ => json!(v),
-                            });
-                        fields.insert(k.trim().to_string(), value);
-                    }
-                    _ => {
-                        eprintln!("error: bad --set '{kv}'; use --set key=value");
-                        std::process::exit(2);
-                    }
-                }
-            }
-            pairs.push(("fields", Value::Object(fields)));
+            pairs.push(("fields", Value::Object(parse_fields(set))));
             ("update", pairs)
         }
         Commands::AddBook {
@@ -418,6 +627,83 @@ fn run(cli: &Cli) -> i32 {
         Commands::RemoveFormat { id, format } => (
             "remove_format",
             vec![("id", json!(id)), ("format", json!(format))],
+        ),
+        Commands::Rename { kind, old, new } => (
+            "rename",
+            vec![
+                ("kind", json!(kind)),
+                ("old", json!(old)),
+                ("new", json!(new)),
+            ],
+        ),
+        Commands::Duplicates { limit } => ("duplicates", vec![("limit", json!(limit))]),
+        Commands::SeriesGaps => ("series_gaps", Vec::new()),
+        Commands::Unread { limit } => ("unread", vec![("limit", json!(limit))]),
+        Commands::ReadingStats => ("reading_stats", Vec::new()),
+        Commands::Export { format, out, query } => {
+            let mut pairs = vec![
+                ("format", json!(format)),
+                ("out", json!(out.to_string_lossy())),
+            ];
+            if let Some(query) = query {
+                pairs.push(("query", json!(query)));
+            }
+            ("export", pairs)
+        }
+        Commands::Excerpt {
+            id,
+            format,
+            chapter,
+            chars,
+            offset,
+        } => {
+            let mut pairs = vec![
+                ("id", json!(id)),
+                ("chapter", json!(chapter)),
+                ("chars", json!(chars)),
+                ("offset", json!(offset)),
+            ];
+            if let Some(format) = format {
+                pairs.push(("format", json!(format)));
+            }
+            ("excerpt", pairs)
+        }
+        Commands::Open { id, format } => {
+            let mut pairs = vec![("id", json!(id))];
+            if let Some(format) = format {
+                pairs.push(("format", json!(format)));
+            }
+            ("open", pairs)
+        }
+        Commands::Random {
+            tag,
+            author,
+            format,
+        } => {
+            let mut pairs = Vec::new();
+            for (key, value) in [("tag", tag), ("author", author), ("format", format)] {
+                if let Some(value) = value {
+                    pairs.push((key, json!(value)));
+                }
+            }
+            ("random", pairs)
+        }
+        Commands::CollectionSave { name, query } => (
+            "collection_save",
+            vec![("name", json!(name)), ("query", json!(query))],
+        ),
+        Commands::CollectionList => ("collection_list", Vec::new()),
+        Commands::CollectionRun { name, limit } => (
+            "collection_run",
+            vec![("name", json!(name)), ("limit", json!(limit))],
+        ),
+        Commands::CollectionDelete { name } => ("collection_delete", vec![("name", json!(name))]),
+        Commands::BulkUpdate { ids, set } => (
+            "bulk_update",
+            vec![
+                ("ids", json!(ids)),
+                ("fields", Value::Object(parse_fields(set))),
+            ],
         ),
         Commands::Convert {
             id,
@@ -564,6 +850,11 @@ pub fn tools_list() -> Value {
             }), vec![])
         },
         {
+            "name": "book_init",
+            "description": "Create a fresh Calibre-shaped library directory. Refuses when one exists.",
+            "inputSchema": schema(json!({"library": library(), "root": root()}), vec![])
+        },
+        {
             "name": "book_update",
             "description": "Set metadata fields on one book via Calibre itself. Takes a backup first.",
             "inputSchema": schema(json!({
@@ -618,6 +909,123 @@ pub fn tools_list() -> Value {
             }), vec!["id", "format"])
         },
         {
+            "name": "book_rename",
+            "description": "Rename a tag, author, series or publisher. Merges when the new name exists.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "kind": {"type": "string", "description": "tag, author, series or publisher"},
+                "old": {"type": "string"},
+                "new": {"type": "string"}
+            }), vec!["kind", "old", "new"])
+        },
+        {
+            "name": "book_duplicates",
+            "description": "Books sharing a normalised title: duplicate candidates.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50}
+            }), vec![])
+        },
+        {
+            "name": "book_series_gaps",
+            "description": "Series with missing volume numbers.",
+            "inputSchema": schema(json!({"library": library(), "root": root()}), vec![])
+        },
+        {
+            "name": "book_unread",
+            "description": "Books never opened (or everything when the library has no tracking table).",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 50}
+            }), vec![])
+        },
+        {
+            "name": "book_reading_stats",
+            "description": "Totals, read/unread split, rating histogram, additions by year, top tags/authors.",
+            "inputSchema": schema(json!({"library": library(), "root": root()}), vec![])
+        },
+        {
+            "name": "book_export",
+            "description": "Export the library (or one search) as CSV or JSON to out.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "format": {"type": "string", "description": "csv or json"},
+                "out": {"type": "string"},
+                "query": {"type": "string"}
+            }), vec!["format", "out"])
+        },
+        {
+            "name": "book_excerpt",
+            "description": "Paginated chapter text from an EPUB (or a raw window from a TXT).",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "id": {"type": "integer"},
+                "format": {"type": "string"},
+                "chapter": {"type": "integer", "minimum": 0, "default": 0},
+                "chars": {"type": "integer", "minimum": 100, "maximum": 20000, "default": 2000},
+                "offset": {"type": "integer", "minimum": 0, "default": 0}
+            }), vec!["id"])
+        },
+        {
+            "name": "book_open",
+            "description": "Open the best file with the system default application (desktop affordance).",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "id": {"type": "integer"},
+                "format": {"type": "string"}
+            }), vec!["id"])
+        },
+        {
+            "name": "book_random",
+            "description": "A random book, optionally filtered by tag, author or format.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "tag": {"type": "string"},
+                "author": {"type": "string"},
+                "format": {"type": "string"}
+            }), vec![])
+        },
+        {
+            "name": "book_collection_save",
+            "description": "Save a named search (a smart collection).",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "name": {"type": "string"},
+                "query": {"type": "string"}
+            }), vec!["name", "query"])
+        },
+        {
+            "name": "book_collection_list",
+            "description": "List saved searches.",
+            "inputSchema": schema(json!({"library": library(), "root": root()}), vec![])
+        },
+        {
+            "name": "book_collection_run",
+            "description": "Run a saved search.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "name": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 20}
+            }), vec!["name"])
+        },
+        {
+            "name": "book_collection_delete",
+            "description": "Delete a saved search.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "name": {"type": "string"}
+            }), vec!["name"])
+        },
+        {
+            "name": "book_bulk_update",
+            "description": "Update the same fields on many books, all-or-nothing in one transaction.",
+            "inputSchema": schema(json!({
+                "library": library(), "root": root(),
+                "ids": {"description": "Book ids: array or comma-separated string"},
+                "fields": {"type": "object"}
+            }), vec!["ids", "fields"])
+        },
+        {
             "name": "book_convert",
             "description": "Convert one book with ebook-convert into out_dir. Never overwrites an existing file.",
             "inputSchema": schema(json!({
@@ -654,11 +1062,26 @@ pub fn call_tool(name: &str, args: &Value) -> Value {
         "book_stats" | "book.stats" => "stats",
         "book_schema" | "book.schema" => "schema",
         "book_backup" | "book.backup" => "backup",
+        "book_init" | "book.init" => "init",
         "book_update" | "book.update" => "update",
         "book_add" | "book.add" | "book_add_book" => "add_book",
         "book_remove" | "book.remove" | "book_remove_book" => "remove_book",
         "book_add_format" | "book.add_format" => "add_format",
         "book_remove_format" | "book.remove_format" => "remove_format",
+        "book_rename" | "book.rename" => "rename",
+        "book_duplicates" | "book.duplicates" => "duplicates",
+        "book_series_gaps" | "book.series_gaps" => "series_gaps",
+        "book_unread" | "book.unread" => "unread",
+        "book_reading_stats" | "book.reading_stats" => "reading_stats",
+        "book_export" | "book.export" => "export",
+        "book_excerpt" | "book.excerpt" => "excerpt",
+        "book_open" | "book.open" => "open",
+        "book_random" | "book.random" => "random",
+        "book_collection_save" | "book.collection_save" => "collection_save",
+        "book_collection_list" | "book.collection_list" => "collection_list",
+        "book_collection_run" | "book.collection_run" => "collection_run",
+        "book_collection_delete" | "book.collection_delete" => "collection_delete",
+        "book_bulk_update" | "book.bulk_update" => "bulk_update",
         "book_convert" | "book.convert" => "convert",
         "book_ingest" | "book.ingest" | "book_ingest_html" => "ingest_html",
         other => {
@@ -780,7 +1203,7 @@ mod tests {
     fn tool_surface_is_complete_and_valid() {
         let tools = tools_list();
         let tools = tools.as_array().cloned().unwrap_or_default();
-        assert_eq!(tools.len(), 15);
+        assert_eq!(tools.len(), 30);
         for tool in &tools {
             let name = tool["name"].as_str().unwrap_or("");
             assert!(name.starts_with("book_"), "{name}");
