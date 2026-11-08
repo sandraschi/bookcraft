@@ -7,8 +7,9 @@ One binary, three surfaces: `bookcraft-cli <verb>` for humans and scripts,
 `bookcraft-cli mcp` for agents over stdio, and the `bookcraft-app` desktop shelf.
 All three call `bookcraft_core::dispatch`, so they cannot disagree.
 
-**Status: v0.3.0 - L1 core, L2 CLI/MCP (15 tools) and the L3 shelf, all verified
-(34 tests). Democraft recipes live in `democraft-mcp`. See `HANDOVER.md`.**
+**Status: v0.5.0 - L1 core, L2 CLI/MCP (30 tools) and the L3 shelf (11 views: now with
+covers, in-shelf reading and multi-select bulk work), all verified (46 tests).
+Democraft recipes live in `democraft-mcp`. See `HANDOVER.md`.**
 
 ## Guarantees
 
@@ -89,14 +90,29 @@ cargo build --release -p bookcraft-mcp
 | `remove-book` | Remove one book (Recycle Bin unless `--permanent`) |
 | `add-format` | Attach one format file to a book (replaces the format when present) |
 | `remove-format` | Drop one format from a book; a no-op when absent |
+| `rename` | Rename a tag/author/series/publisher (`--kind`, merges when the new name exists) |
+| `duplicates` | Books sharing a normalised title |
+| `series-gaps` | Series with missing volume numbers |
+| `unread` | Books never opened |
+| `reading-stats` | Totals, read/unread, ratings, years, top tags/authors |
+| `export` | Library (or one search) as CSV or JSON into `--out` |
+| `excerpt` | Paginated chapter text from EPUB, raw window from TXT |
+| `open` | Open the best file with the system viewer |
+| `random` | A random book, optionally filtered |
+| `collection-save` / `collection-list` / `collection-run` / `collection-delete` | Named saved searches |
+| `bulk-update` | Same fields on many books, all-or-nothing (`--ids 1,2,3`) |
 | `tools` | Print the MCP tool surface as JSON |
 | `mcp` | Run the MCP 2024-11-05 stdio server |
 
-Every verb accepts `--json`. The MCP surface exposes 15 tools (`book_status`,
+Every verb accepts `--json`. The MCP surface exposes 30 tools (`book_status`,
 `book_list`, `book_search`, `book_info`, `book_grep`, `book_stats`, `book_schema`,
 `book_backup`, `book_update`, `book_add`, `book_remove`, `book_add_format`,
-`book_remove_format`, `book_convert`, `book_ingest`) and
-accepts dotted ids too (`book.status`, …). Full detail: `docs/TOOLS.md`.
+`book_remove_format`, `book_rename`, `book_duplicates`, `book_series_gaps`,
+`book_unread`, `book_reading_stats`, `book_export`, `book_excerpt`, `book_open`,
+`book_random`, `book_collection_save`, `book_collection_list`, `book_collection_run`,
+`book_collection_delete`, `book_bulk_update`, `book_convert`, `book_ingest`,
+`book_init`) and accepts dotted ids too (`book.status`, …).
+Full detail: `docs/TOOLS.md`.
 
 ## Environment
 
