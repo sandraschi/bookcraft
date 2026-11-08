@@ -9,6 +9,18 @@ use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+/// Decode a cover file to unpremultiplied RGBA8, thumbnail-bounded to `max_px`.
+/// Used by the L3 shelf; read-only like everything else here.
+pub fn cover_rgba(path: &Path, max_px: u32) -> Result<(Vec<u8>, u32, u32), BookError> {
+    let bound = max_px.clamp(1, 1024);
+    let img = image::open(path)
+        .map_err(|e| BookError::Invalid(format!("unreadable image {}: {e}", path.display())))?;
+    let thumb = img.thumbnail(bound, bound);
+    let rgba = thumb.to_rgba8();
+    let (width, height) = (rgba.width(), rgba.height());
+    Ok((rgba.into_raw(), width, height))
+}
+
 /// A discovered Calibre library. Everything is resolved eagerly so later calls cannot
 /// accidentally re-resolve to a different directory.
 #[derive(Debug, Clone)]
@@ -198,6 +210,11 @@ impl Library {
 
     fn conn(&self) -> Result<Connection, BookError> {
         open_readonly(&self.metadata_db)
+    }
+
+    /// A read-only connection for sibling modules (analytics, collections).
+    pub(crate) fn read_conn(&self) -> Result<Connection, BookError> {
+        self.conn()
     }
 
     fn summary(&self, row: &Row<'_>) -> rusqlite::Result<Value> {
@@ -703,6 +720,25 @@ mod tests {
         assert!(matches!(
             Library::open(tmp.path()),
             Err(BookError::NotFound(_))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn cover_rgba_decodes_and_thumbnails() -> Result<(), BookError> {
+        let tmp = tempfile::tempdir().map_err(BookError::Io)?;
+        let path = tmp.path().join("cover.png");
+        let img = image::RgbImage::from_pixel(8, 4, image::Rgb([200, 30, 30]));
+        img.save(&path)
+            .map_err(|e| BookError::Invalid(format!("cannot write fixture: {e}")))?;
+        let (pixels, width, height) = cover_rgba(&path, 4)?;
+        assert!(width <= 4 && height <= 4);
+        assert_eq!(pixels.len(), (width * height * 4) as usize);
+        // Thumbnail of an 8x4 image bounded to 4 keeps the 2:1 aspect.
+        assert_eq!((width, height), (4, 2));
+        assert!(matches!(
+            cover_rgba(&tmp.path().join("absent.png"), 64),
+            Err(BookError::Invalid(_))
         ));
         Ok(())
     }
