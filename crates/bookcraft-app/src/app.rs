@@ -26,10 +26,13 @@ enum View {
     Convert,
     Ingest,
     Manage,
+    Catalog,
+    Share,
+    Read,
 }
 
 impl View {
-    fn all() -> [View; 8] {
+    fn all() -> [View; 11] {
         [
             View::Status,
             View::Library,
@@ -39,6 +42,9 @@ impl View {
             View::Convert,
             View::Ingest,
             View::Manage,
+            View::Catalog,
+            View::Share,
+            View::Read,
         ]
     }
 
@@ -52,6 +58,9 @@ impl View {
             View::Convert => "Convert",
             View::Ingest => "Ingest",
             View::Manage => "Manage",
+            View::Catalog => "Catalog",
+            View::Share => "Share",
+            View::Read => "Read",
         }
     }
 }
@@ -97,6 +106,38 @@ pub struct BookApp {
     remove_permanent: bool,
     remove_result: Option<Value>,
     backup_result: Option<Value>,
+    bulk_ids: String,
+    bulk_result: Option<Value>,
+    rename_kind: String,
+    rename_old: String,
+    rename_new: String,
+    rename_result: Option<Value>,
+    catalog_result: Option<Value>,
+    coll_name: String,
+    coll_query: String,
+    coll_result: Option<Value>,
+    coll_list: Option<Value>,
+    export_format: String,
+    export_out: String,
+    export_query: String,
+    export_result: Option<Value>,
+    excerpt_id: String,
+    excerpt_format: String,
+    excerpt_chapter: String,
+    excerpt_chars: String,
+    excerpt_result: Option<Value>,
+    open_id: String,
+    open_format: String,
+    open_result: Option<Value>,
+    random_tag: String,
+    random_author: String,
+    random_format: String,
+    random_result: Option<Value>,
+    textures: std::collections::HashMap<i64, egui::TextureHandle>,
+    marked: std::collections::BTreeSet<i64>,
+    read_id: String,
+    read_chapter: usize,
+    read_result: Option<Value>,
     notice: String,
 }
 
@@ -141,6 +182,38 @@ impl Default for BookApp {
             remove_permanent: false,
             remove_result: None,
             backup_result: None,
+            bulk_ids: String::new(),
+            bulk_result: None,
+            rename_kind: "tag".to_string(),
+            rename_old: String::new(),
+            rename_new: String::new(),
+            rename_result: None,
+            catalog_result: None,
+            coll_name: String::new(),
+            coll_query: String::new(),
+            coll_result: None,
+            coll_list: None,
+            export_format: "csv".to_string(),
+            export_out: String::new(),
+            export_query: String::new(),
+            export_result: None,
+            excerpt_id: String::new(),
+            excerpt_format: String::new(),
+            excerpt_chapter: "0".to_string(),
+            excerpt_chars: "2000".to_string(),
+            excerpt_result: None,
+            open_id: String::new(),
+            open_format: String::new(),
+            open_result: None,
+            random_tag: String::new(),
+            random_author: String::new(),
+            random_format: String::new(),
+            random_result: None,
+            textures: std::collections::HashMap::new(),
+            marked: std::collections::BTreeSet::new(),
+            read_id: String::new(),
+            read_chapter: 0,
+            read_result: None,
             notice: String::new(),
         }
     }
@@ -173,7 +246,33 @@ fn count(value: &Value, key: &str) -> String {
 }
 
 impl BookApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Warm paper-and-amber theme: a library should feel like one.
+        // egui 0.37 keeps one style per theme; restyle the active one.
+        let theme = cc.egui_ctx.theme();
+        let mut style = (*cc.egui_ctx.style_of(theme)).clone();
+        let paper = egui::Color32::from_rgb(26, 21, 16);
+        let shelf = egui::Color32::from_rgb(34, 28, 21);
+        let amber = egui::Color32::from_rgb(216, 162, 64);
+        let parchment = egui::Color32::from_rgb(235, 222, 200);
+        style.visuals.window_fill = paper;
+        style.visuals.panel_fill = shelf;
+        style.visuals.faint_bg_color = egui::Color32::from_rgb(42, 34, 25);
+        style.visuals.extreme_bg_color = egui::Color32::from_rgb(18, 14, 11);
+        style.visuals.selection.bg_fill = egui::Color32::from_rgb(96, 64, 24);
+        style.visuals.selection.stroke.color = amber;
+        style.visuals.hyperlink_color = amber;
+        style.visuals.override_text_color = Some(parchment);
+        style.visuals.warn_fg_color = amber;
+        style.text_styles.insert(
+            egui::TextStyle::Heading,
+            egui::FontId::new(22.0, egui::FontFamily::Proportional),
+        );
+        style.text_styles.insert(
+            egui::TextStyle::Name("book-title".into()),
+            egui::FontId::new(20.0, egui::FontFamily::Proportional),
+        );
+        cc.egui_ctx.set_style_of(theme, style);
         Self::default()
     }
 
@@ -287,10 +386,59 @@ impl BookApp {
         show_result(ui, &self.manage_result);
 
         ui.separator();
-        ui.heading("Add a book");
+        ui.heading("Bulk update (same fields, all-or-nothing)");
         ui.horizontal(|ui| {
-            ui.label("file:");
-            ui.text_edit_singleline(&mut self.add_file);
+            ui.label("ids (comma separated):");
+            ui.text_edit_singleline(&mut self.bulk_ids);
+            if ui.button("Apply fields above").clicked() {
+                let mut fields = serde_json::Map::new();
+                for (key, value) in [
+                    ("title", self.manage_title.trim().to_string()),
+                    ("authors", self.manage_authors.trim().to_string()),
+                    ("tags", self.manage_tags.trim().to_string()),
+                    ("series", self.manage_series.trim().to_string()),
+                    ("publisher", self.manage_publisher.trim().to_string()),
+                    ("pubdate", self.manage_pubdate.trim().to_string()),
+                    ("comments", self.manage_comment.trim().to_string()),
+                ] {
+                    if !value.is_empty() {
+                        fields.insert(key.to_string(), Value::String(value));
+                    }
+                }
+                match self.manage_rating.trim() {
+                    "" => {}
+                    raw => match raw.parse::<i64>() {
+                        Ok(n) => {
+                            fields.insert("rating".to_string(), json!(n));
+                        }
+                        Err(_) => {
+                            self.notice = "bulk rating must be an integer".to_string();
+                        }
+                    },
+                }
+                if self.notice.is_empty() {
+                    self.bulk_result = Some(self.dispatch(
+                        "bulk_update",
+                        json!({"ids": self.bulk_ids.trim(), "fields": fields}),
+                    ));
+                }
+            }
+        });
+        show_result(ui, &self.bulk_result);
+
+        ui.separator();
+        ui.heading("Bulk update (same fields, all-or-nothing)");
+        ui.horizontal(|ui| {
+            ui.label("ids (comma separated):");
+            ui.text_edit_singleline(&mut self.bulk_ids);
+            if ui.button("Take marks").clicked() {
+                self.bulk_ids = self
+                    .marked
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+            }
         });
         ui.horizontal(|ui| {
             ui.label("title:");
@@ -346,6 +494,275 @@ impl BookApp {
         show_result(ui, &self.backup_result);
     }
 
+    fn show_catalog(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Rename a vocabulary entry");
+        ui.label("Merges when the new name exists; otherwise renames in place.");
+        ui.horizontal(|ui| {
+            ui.label("kind (tag/author/series/publisher):");
+            ui.text_edit_singleline(&mut self.rename_kind);
+            ui.label("old:");
+            ui.text_edit_singleline(&mut self.rename_old);
+            ui.label("new:");
+            ui.text_edit_singleline(&mut self.rename_new);
+            if ui.button("Rename").clicked() {
+                self.rename_result = Some(self.dispatch(
+                    "rename",
+                    json!({
+                        "kind": self.rename_kind.trim(),
+                        "old": self.rename_old.trim(),
+                        "new": self.rename_new.trim(),
+                    }),
+                ));
+            }
+        });
+        show_result(ui, &self.rename_result);
+
+        ui.separator();
+        ui.heading("Catalog analytics");
+        ui.horizontal(|ui| {
+            if ui.button("Duplicates").clicked() {
+                self.catalog_result = Some(self.dispatch("duplicates", json!({"limit": 50})));
+            }
+            if ui.button("Series gaps").clicked() {
+                self.catalog_result = Some(self.dispatch("series_gaps", json!({})));
+            }
+            if ui.button("Unread").clicked() {
+                self.catalog_result = Some(self.dispatch("unread", json!({"limit": 50})));
+            }
+            if ui.button("Reading stats").clicked() {
+                self.catalog_result = Some(self.dispatch("reading_stats", json!({})));
+            }
+        });
+        if let Some(result) = self.catalog_result.clone() {
+            if result.get("success") == Some(&Value::Bool(true)) {
+                ui.monospace(
+                    serde_json::to_string(&result)
+                        .unwrap_or_default()
+                        .chars()
+                        .take(1500)
+                        .collect::<String>(),
+                );
+            } else {
+                ui.colored_label(
+                    egui::Color32::LIGHT_RED,
+                    format!("failed: {}", text(&result, "error")),
+                );
+            }
+        }
+
+        ui.separator();
+        ui.heading("Saved searches");
+        ui.horizontal(|ui| {
+            ui.label("name:");
+            ui.text_edit_singleline(&mut self.coll_name);
+            ui.label("query:");
+            ui.text_edit_singleline(&mut self.coll_query);
+            if ui.button("Save").clicked() {
+                self.coll_result = Some(self.dispatch(
+                    "collection_save",
+                    json!({"name": self.coll_name.trim(), "query": self.coll_query.trim()}),
+                ));
+            }
+            if ui.button("Run").clicked() {
+                self.coll_result = Some(self.dispatch(
+                    "collection_run",
+                    json!({"name": self.coll_name.trim(), "limit": 20}),
+                ));
+            }
+            if ui.button("Delete").clicked() {
+                self.coll_result = Some(
+                    self.dispatch("collection_delete", json!({"name": self.coll_name.trim()})),
+                );
+            }
+            if ui.button("List").clicked() {
+                self.coll_list = Some(self.dispatch("collection_list", json!({})));
+            }
+        });
+        show_result(ui, &self.coll_result);
+        if let Some(listed) = self.coll_list.clone() {
+            ui.monospace(format!(
+                "saved: {}",
+                listed
+                    .get("names")
+                    .and_then(Value::as_array)
+                    .map(|n| n
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .collect::<Vec<_>>()
+                        .join(", "))
+                    .unwrap_or_default()
+            ));
+        }
+    }
+
+    fn show_share(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Export");
+        ui.horizontal(|ui| {
+            ui.label("format (csv/json):");
+            ui.text_edit_singleline(&mut self.export_format);
+            ui.label("out:");
+            ui.text_edit_singleline(&mut self.export_out);
+            ui.label("query (optional):");
+            ui.text_edit_singleline(&mut self.export_query);
+            if ui.button("Export").clicked() {
+                let mut args = json!({
+                    "format": self.export_format.trim(),
+                    "out": self.export_out.trim(),
+                });
+                if !self.export_query.trim().is_empty() {
+                    args["query"] = Value::String(self.export_query.trim().to_string());
+                }
+                self.export_result = Some(self.dispatch("export", args));
+            }
+        });
+        show_result(ui, &self.export_result);
+
+        ui.separator();
+        ui.heading("Excerpt");
+        ui.horizontal(|ui| {
+            ui.label("id:");
+            ui.text_edit_singleline(&mut self.excerpt_id);
+            ui.label("format:");
+            ui.text_edit_singleline(&mut self.excerpt_format);
+            ui.label("chapter:");
+            ui.text_edit_singleline(&mut self.excerpt_chapter);
+            ui.label("chars:");
+            ui.text_edit_singleline(&mut self.excerpt_chars);
+            if ui.button("Read").clicked() {
+                let id: i64 = self.excerpt_id.trim().parse().unwrap_or(-1);
+                let chapter: usize = self.excerpt_chapter.trim().parse().unwrap_or(0);
+                let chars: usize = self.excerpt_chars.trim().parse().unwrap_or(2000);
+                let mut args = json!({"id": id, "chapter": chapter, "chars": chars});
+                if !self.excerpt_format.trim().is_empty() {
+                    args["format"] = Value::String(self.excerpt_format.trim().to_string());
+                }
+                self.excerpt_result = Some(self.dispatch("excerpt", args));
+            }
+        });
+        if let Some(result) = self.excerpt_result.clone() {
+            if result.get("success") == Some(&Value::Bool(true)) {
+                ui.heading(format!(
+                    "{} (chapter {} of {})",
+                    result["title"].as_str().unwrap_or(""),
+                    result["chapter"].as_i64().unwrap_or(0),
+                    result["chapters"].as_i64().unwrap_or(0)
+                ));
+                ui.label(result["text"].as_str().unwrap_or(""));
+            } else {
+                ui.colored_label(
+                    egui::Color32::LIGHT_RED,
+                    format!("failed: {}", text(&result, "error")),
+                );
+            }
+        }
+
+        ui.separator();
+        ui.heading("Open in system viewer");
+        ui.horizontal(|ui| {
+            ui.label("id:");
+            ui.text_edit_singleline(&mut self.open_id);
+            ui.label("format:");
+            ui.text_edit_singleline(&mut self.open_format);
+            if ui.button("Open").clicked() {
+                let id: i64 = self.open_id.trim().parse().unwrap_or(-1);
+                let mut args = json!({"id": id});
+                if !self.open_format.trim().is_empty() {
+                    args["format"] = Value::String(self.open_format.trim().to_string());
+                }
+                self.open_result = Some(self.dispatch("open", args));
+            }
+        });
+        show_result(ui, &self.open_result);
+
+        ui.separator();
+        ui.heading("Random pick");
+        ui.horizontal(|ui| {
+            ui.label("tag:");
+            ui.text_edit_singleline(&mut self.random_tag);
+            ui.label("author:");
+            ui.text_edit_singleline(&mut self.random_author);
+            ui.label("format:");
+            ui.text_edit_singleline(&mut self.random_format);
+            if ui.button("Surprise me").clicked() {
+                let mut args = json!({});
+                for (key, field) in [
+                    ("tag", &self.random_tag),
+                    ("author", &self.random_author),
+                    ("format", &self.random_format),
+                ] {
+                    if !field.trim().is_empty() {
+                        args[key] = Value::String(field.trim().to_string());
+                    }
+                }
+                self.random_result = Some(self.dispatch("random", args));
+            }
+        });
+        if let Some(result) = self.random_result.clone() {
+            if result.get("success") == Some(&Value::Bool(true)) {
+                if let Some(book) = result.get("book") {
+                    ui.heading(format!(
+                        "#{} {}",
+                        book["id"].as_i64().unwrap_or(0),
+                        book["title"].as_str().unwrap_or("")
+                    ));
+                    ui.label(format!(
+                        "{} - {}",
+                        joined(book, "authors"),
+                        joined(book, "formats")
+                    ));
+                }
+            } else {
+                ui.colored_label(
+                    egui::Color32::LIGHT_RED,
+                    format!("failed: {}", text(&result, "error")),
+                );
+            }
+        }
+    }
+
+    fn show_read(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Read");
+        ui.horizontal(|ui| {
+            ui.label("id:");
+            ui.text_edit_singleline(&mut self.read_id);
+            if ui.button("Open").clicked() {
+                self.read_chapter = 0;
+                self.fetch_chapter();
+            }
+            if ui.button("<< Prev").clicked() {
+                self.read_chapter = self.read_chapter.saturating_sub(1);
+                self.fetch_chapter();
+            }
+            if ui.button("Next >>").clicked() {
+                self.read_chapter = self.read_chapter.saturating_add(1);
+                self.fetch_chapter();
+            }
+        });
+        let Some(result) = self.read_result.clone() else {
+            ui.label("Open a book (or press Read on its card) to start reading.");
+            return;
+        };
+        if result.get("success") != Some(&Value::Bool(true)) {
+            ui.colored_label(
+                egui::Color32::LIGHT_RED,
+                format!("failed: {}", text(&result, "error")),
+            );
+            return;
+        }
+        let chapter = result["chapter"].as_i64().unwrap_or(0) + 1;
+        let chapters = result["chapters"].as_i64().unwrap_or(1).max(1);
+        ui.heading(format!(
+            "{} - chapter {chapter} of {chapters}",
+            result["title"].as_str().unwrap_or("")
+        ));
+        if result["has_more"].as_bool().unwrap_or(false) {
+            ui.label("(excerpt continues past this window)");
+        }
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.label(result["text"].as_str().unwrap_or(""));
+        });
+    }
+
     fn show_status(&mut self, ui: &mut egui::Ui) {
         ui.heading("Engine & library");
         if ui.button("Refresh status").clicked() {
@@ -379,43 +796,163 @@ impl BookApp {
         }
     }
 
+    /// Cached cover thumbnail: loaded once per book, then served from the texture map.
+    fn cover_texture(
+        &mut self,
+        ctx: &egui::Context,
+        book: &Value,
+    ) -> Option<(egui::TextureId, egui::Vec2)> {
+        let id = book.get("id")?.as_i64()?;
+        if let Some(tex) = self.textures.get(&id) {
+            let [w, h] = tex.size();
+            let scale = (240.0 / h.max(1) as f32).min(1.0);
+            return Some((
+                tex.id(),
+                egui::Vec2::new(w as f32 * scale, h as f32 * scale),
+            ));
+        }
+        let path = book.get("cover_path")?.as_str()?;
+        if path.is_empty() {
+            return None;
+        }
+        let (pixels, w, h) =
+            bookcraft_core::library::cover_rgba(std::path::Path::new(path), 360).ok()?;
+        let image = egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &pixels);
+        let tex = ctx.load_texture(format!("cover-{id}"), image, egui::TextureOptions::LINEAR);
+        let scale = (240.0 / h.max(1) as f32).min(1.0);
+        let size = egui::Vec2::new(w as f32 * scale, h as f32 * scale);
+        let handle = tex.id();
+        self.textures.insert(id, tex);
+        Some((handle, size))
+    }
+
+    fn fetch_chapter(&mut self) {
+        let id: i64 = self.read_id.trim().parse().unwrap_or(-1);
+        self.read_result = Some(self.dispatch(
+            "excerpt",
+            json!({"id": id, "chapter": self.read_chapter, "chars": 4000}),
+        ));
+    }
+
     fn show_library(&mut self, ui: &mut egui::Ui) {
         egui::Panel::left("book-list").show(ui, |ui| {
-            ui.heading("Books");
-            if ui.button("Load list").clicked() {
-                self.load_list();
-            }
+            ui.horizontal(|ui| {
+                ui.heading("Books");
+                if ui.button("Load").clicked() {
+                    self.load_list();
+                }
+                if ui.button("Clear marks").clicked() {
+                    self.marked.clear();
+                }
+            });
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let mut pick: Option<i64> = None;
+                let mut toggle: Option<i64> = None;
                 for book in &self.books {
                     let id = book.get("id").and_then(Value::as_i64).unwrap_or(0);
                     let label = format!("#{id} {}", text(book, "title"));
-                    if ui
-                        .selectable_value(&mut self.selected, Some(id), label)
-                        .clicked()
-                    {
-                        pick = Some(id);
+                    ui.horizontal(|ui| {
+                        let mut marked = self.marked.contains(&id);
+                        if ui.checkbox(&mut marked, "").clicked() {
+                            toggle = Some(id);
+                        }
+                        if ui
+                            .selectable_value(&mut self.selected, Some(id), label)
+                            .clicked()
+                        {
+                            pick = Some(id);
+                        }
+                    });
+                }
+                if let Some(id) = toggle {
+                    if !self.marked.remove(&id) {
+                        self.marked.insert(id);
                     }
                 }
                 if let Some(id) = pick {
                     self.show_detail(id);
                 }
             });
+            if !self.marked.is_empty() {
+                ui.separator();
+                ui.label(format!("{} marked", self.marked.len()));
+                ui.horizontal(|ui| {
+                    if ui.button("Bulk edit").clicked() {
+                        self.bulk_ids = self
+                            .marked
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        self.view = View::Manage;
+                    }
+                    if ui.button("Trash marked").clicked() {
+                        let ids: Vec<i64> = self.marked.iter().copied().collect();
+                        let mut trashed = 0;
+                        for id in &ids {
+                            let result = self.dispatch("remove_book", json!({"id": id}));
+                            if result.get("success") == Some(&Value::Bool(true)) {
+                                trashed += 1;
+                            }
+                        }
+                        self.marked.clear();
+                        self.load_list();
+                        self.notice = format!("trashed {trashed} of {} marked", ids.len());
+                    }
+                });
+            }
         });
         egui::CentralPanel::default().show(ui, |ui| {
             let Some(book) = self.detail.clone() else {
                 ui.label("Pick a book on the left.");
                 return;
             };
-            ui.heading(text(&book, "title"));
-            ui.label(format!("authors: {}", joined(&book, "authors")));
-            if !text(&book, "series").is_empty() {
-                ui.label(format!("series: {}", text(&book, "series")));
-            }
-            ui.label(format!("formats: {}", joined(&book, "formats")));
-            if !text(&book, "cover_path").is_empty() {
-                ui.monospace(format!("cover: {}", text(&book, "cover_path")));
-            }
+            let cover = self.cover_texture(ui.ctx(), &book);
+            ui.horizontal(|ui| {
+                if let Some((id, size)) = cover {
+                    ui.image((id, size));
+                }
+                ui.vertical(|ui| {
+                    ui.label(
+                        egui::RichText::new(text(&book, "title"))
+                            .strong()
+                            .size(20.0),
+                    );
+                    ui.label(format!("by {}", joined(&book, "authors")));
+                    if !text(&book, "series").is_empty() {
+                        ui.label(format!(
+                            "{} #{}",
+                            text(&book, "series"),
+                            book.get("series_index")
+                                .and_then(Value::as_f64)
+                                .unwrap_or(1.0)
+                        ));
+                    }
+                    ui.label(format!("formats: {}", joined(&book, "formats")));
+                    if let Some(rating) = book.get("rating").and_then(Value::as_i64) {
+                        let stars = "*".repeat(rating.clamp(0, 5) as usize);
+                        ui.label(format!("rating: {stars}"));
+                    }
+                });
+            });
+            ui.horizontal(|ui| {
+                if ui.button("Read").clicked() {
+                    self.read_id = book["id"]
+                        .as_i64()
+                        .map(|n| n.to_string())
+                        .unwrap_or_default();
+                    self.read_chapter = 0;
+                    self.fetch_chapter();
+                    self.view = View::Read;
+                }
+                if ui.button("Edit in Manage").clicked() {
+                    self.manage_id = book["id"]
+                        .as_i64()
+                        .map(|n| n.to_string())
+                        .unwrap_or_default();
+                    self.view = View::Manage;
+                }
+            });
             ui.separator();
             ui.label(text(&book, "description"));
             ui.separator();
@@ -714,6 +1251,9 @@ impl eframe::App for BookApp {
                 View::Convert => self.show_convert(ui),
                 View::Ingest => self.show_ingest(ui),
                 View::Manage => self.show_manage(ui),
+                View::Catalog => self.show_catalog(ui),
+                View::Share => self.show_share(ui),
+                View::Read => self.show_read(ui),
             }
             if !self.notice.is_empty() {
                 ui.separator();
@@ -861,6 +1401,32 @@ pub fn run_smoke_checks() -> Result<Vec<String>, String> {
         return Err("smoke remove did not delete the record".to_string());
     }
     log.push("smoke remove: ok".to_string());
+
+    // Catalog and share paths on the same fixture.
+    let renamed = book.dispatch("collection_save", json!({"name": "smoke", "query": "dune"}));
+    if renamed.get("success") != Some(&Value::Bool(true)) {
+        return Err(format!("smoke collection save unsuccessful: {renamed}"));
+    }
+    let ran = book.dispatch("collection_run", json!({"name": "smoke"}));
+    if ran.get("count").and_then(Value::as_i64).unwrap_or(0) < 1 {
+        return Err(format!("smoke collection run empty: {ran}"));
+    }
+    log.push("smoke collection roundtrip: ok".to_string());
+
+    let exported = book.dispatch(
+        "export",
+        json!({"format": "csv", "out": tmp.path().join("s.csv").to_string_lossy()}),
+    );
+    if exported.get("success") != Some(&Value::Bool(true)) || !tmp.path().join("s.csv").is_file() {
+        return Err(format!("smoke export unsuccessful: {exported}"));
+    }
+    log.push("smoke export: ok".to_string());
+
+    let picked = book.dispatch("random", json!({}));
+    if picked["book"]["id"].as_i64().unwrap_or(-1) < 0 {
+        return Err(format!("smoke random unsuccessful: {picked}"));
+    }
+    log.push("smoke random: ok".to_string());
     Ok(log)
 }
 
