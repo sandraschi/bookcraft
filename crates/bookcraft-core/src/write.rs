@@ -241,11 +241,16 @@ fn free_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
     dir.join(format!("{stem}-overflow.{ext}"))
 }
 
+/// Per-library data directory outside the library (backups, trash, collections).
+pub(crate) fn data_dir(lib: &Library) -> Result<PathBuf, BookError> {
+    let dir = backup_root().join(lib_tag(lib.root()));
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
 /// Copy `metadata.db` (and the full-text index when present) to a timestamped backup
 /// outside the library, reusing a backup younger than 120 seconds.
 pub fn ensure_backup(lib: &Library, force: bool) -> Result<PathBuf, BookError> {
-    let dir = backup_root().join(lib_tag(lib.root()));
-    std::fs::create_dir_all(&dir)?;
+    let dir = data_dir(lib)?;
     if !force {
         if let Some((stamp, path)) = newest_backup(&dir) {
             if epoch_secs().saturating_sub(stamp) < BACKUP_FRESH_SECS && path.is_file() {
@@ -286,7 +291,7 @@ pub fn open_writable(lib: &Library) -> Result<Connection, BookError> {
     Ok(conn)
 }
 
-fn has_table(conn: &Connection, name: &str) -> bool {
+pub(crate) fn has_table(conn: &Connection, name: &str) -> bool {
     conn.query_row(
         "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
         rusqlite::params![name],
@@ -296,7 +301,7 @@ fn has_table(conn: &Connection, name: &str) -> bool {
         > 0
 }
 
-fn touch(tx: &Transaction<'_>, id: i64, dirtied: bool) -> Result<(), BookError> {
+pub(crate) fn touch(tx: &Transaction<'_>, id: i64, dirtied: bool) -> Result<(), BookError> {
     tx.execute(
         "UPDATE books SET last_modified = ?1 WHERE id = ?2",
         rusqlite::params![utc_now_stamp(), id],
@@ -440,6 +445,43 @@ fn find_duplicate(
     Ok(None)
 }
 
+/// Create a fresh Calibre-shaped library directory. Refuses when a metadata.db
+/// already exists there; never touches an existing library.
+pub fn init_library(dir: &Path) -> Result<Value, BookError> {
+    let db = if dir
+        .file_name()
+        .map(|n| n.eq_ignore_ascii_case("metadata.db"))
+        .unwrap_or(false)
+    {
+        dir.to_path_buf()
+    } else {
+        dir.join("metadata.db")
+    };
+    if db.is_file() {
+        return Err(BookError::Invalid(format!(
+            "{} is already a library",
+            db.parent()
+                .map(|p| p.display().to_string())
+                .unwrap_or_default()
+        )));
+    }
+    if let Some(parent) = db.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    let conn = Connection::open(&db)?;
+    conn.execute_batch(CALIBRE_WRITE_SCHEMA)?;
+    drop(conn);
+    let lib = Library::open(db.parent().unwrap_or(Path::new(".")))?;
+    let _ = ensure_backup(&lib, true);
+    Ok(json!({
+        "library": lib.root().to_string_lossy(),
+        "created": true,
+        "backup": "none-taken (empty library)",
+    }))
+}
+
 /// Set metadata fields on one book. Verified to exist before the backup is taken.
 #[allow(clippy::too_many_lines)]
 pub fn set_metadata(
@@ -447,6 +489,27 @@ pub fn set_metadata(
     id: i64,
     fields: &Map<String, Value>,
 ) -> Result<Value, BookError> {
+    check_fields(fields)?;
+    lib.detail(id)?;
+
+    let backup = ensure_backup(lib, false)?;
+    let mut conn = open_writable(lib)?;
+    let dirtied = has_table(&conn, "metadata_dirtied");
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+
+    let updated = apply_fields(&tx, id, fields)?;
+    touch(&tx, id, dirtied)?;
+    tx.commit()?;
+
+    Ok(json!({
+        "book_id": id,
+        "updated_fields": updated,
+        "backup": backup.to_string_lossy(),
+    }))
+}
+
+/// Reject unknown or empty field maps before anything is written.
+fn check_fields(fields: &Map<String, Value>) -> Result<(), BookError> {
     if fields.is_empty() {
         return Err(BookError::Invalid("no fields to update".into()));
     }
@@ -458,16 +521,53 @@ pub fn set_metadata(
             )));
         }
     }
-    lib.detail(id)?;
+    Ok(())
+}
+
+/// Update the same fields on many books in one transaction and one backup.
+/// All-or-nothing: the first failure rolls everything back.
+pub fn bulk_update(
+    lib: &Library,
+    ids: &[i64],
+    fields: &Map<String, Value>,
+) -> Result<Value, BookError> {
+    if ids.is_empty() {
+        return Err(BookError::Invalid("no book ids given".into()));
+    }
+    if ids.len() > 1000 {
+        return Err(BookError::Invalid(
+            "at most 1000 books per bulk update".into(),
+        ));
+    }
+    check_fields(fields)?;
+    for id in ids {
+        lib.detail(*id)?;
+    }
 
     let backup = ensure_backup(lib, false)?;
     let mut conn = open_writable(lib)?;
     let dirtied = has_table(&conn, "metadata_dirtied");
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-    // IMMEDIATE would be kinder; rusqlite's unchecked_transaction defers.
-    // Upgrade explicitly so a held library fails fast instead of mid-write.
-    tx.execute_batch("COMMIT; BEGIN IMMEDIATE;")?;
+    let mut done = Vec::with_capacity(ids.len());
+    for id in ids {
+        let updated = apply_fields(&tx, *id, fields)?;
+        touch(&tx, *id, dirtied)?;
+        done.push(json!({"book_id": id, "updated_fields": updated}));
+    }
+    tx.commit()?;
+    Ok(json!({
+        "updated": done.len(),
+        "books": done,
+        "backup": backup.to_string_lossy(),
+    }))
+}
 
+/// Apply one field map inside an open transaction. Returns the updated keys.
+fn apply_fields(
+    tx: &Transaction<'_>,
+    id: i64,
+    fields: &Map<String, Value>,
+) -> Result<Vec<String>, BookError> {
     let mut updated = Vec::with_capacity(fields.len());
     for (key, value) in fields {
         match key.as_str() {
@@ -489,9 +589,9 @@ pub fn set_metadata(
                 }
                 let mut ids = Vec::with_capacity(authors.len());
                 for author in &authors {
-                    ids.push(ensure_author(&tx, author)?);
+                    ids.push(ensure_author(tx, author)?);
                 }
-                relink(&tx, "books_authors_link", "author", id, &ids)?;
+                relink(tx, "books_authors_link", "author", id, &ids)?;
                 tx.execute(
                     "UPDATE books SET author_sort = ?1 WHERE id = ?2",
                     rusqlite::params![author_sort_value(first_author(&authors)), id],
@@ -500,9 +600,9 @@ pub fn set_metadata(
             "tags" => {
                 let mut ids = Vec::new();
                 for tag in string_list(value)? {
-                    ids.push(ensure_vocab(&tx, "tags", "name", &tag)?);
+                    ids.push(ensure_vocab(tx, "tags", "name", &tag)?);
                 }
-                relink(&tx, "books_tags_link", "tag", id, &ids)?;
+                relink(tx, "books_tags_link", "tag", id, &ids)?;
             }
             "series" => {
                 let name = value
@@ -512,7 +612,7 @@ pub fn set_metadata(
                     .ok_or_else(|| {
                         BookError::Invalid("series must be a non-empty string".into())
                     })?;
-                let series_id = ensure_vocab(&tx, "series", "name", name)?;
+                let series_id = ensure_vocab(tx, "series", "name", name)?;
                 // Trigger series_update_trg keeps series.sort in step; link is single.
                 tx.execute(
                     "DELETE FROM books_series_link WHERE book = ?1",
@@ -538,14 +638,14 @@ pub fn set_metadata(
             "publisher" => {
                 let mut ids = Vec::new();
                 for name in string_list(value)? {
-                    ids.push(ensure_vocab(&tx, "publishers", "name", &name)?);
+                    ids.push(ensure_vocab(tx, "publishers", "name", &name)?);
                 }
                 if ids.len() > 1 {
                     return Err(BookError::Invalid(
                         "a book has one publisher; pass a single name".into(),
                     ));
                 }
-                relink(&tx, "books_publishers_link", "publisher", id, &ids)?;
+                relink(tx, "books_publishers_link", "publisher", id, &ids)?;
             }
             "rating" => {
                 let rating = value
@@ -554,11 +654,11 @@ pub fn set_metadata(
                 if !(0..=5).contains(&rating) {
                     return Err(BookError::Invalid("rating must be an integer 0-5".into()));
                 }
-                let rating_id = ensure_rating(&tx, rating)?;
-                relink(&tx, "books_ratings_link", "rating", id, &[rating_id])?;
+                let rating_id = ensure_rating(tx, rating)?;
+                relink(tx, "books_ratings_link", "rating", id, &[rating_id])?;
             }
             "isbn" | "languages" | "identifiers" | "comments" | "pubdate" => {
-                apply_scalar(&tx, id, key, value)?;
+                apply_scalar(tx, id, key, value)?;
             }
             _ => {
                 return Err(BookError::Invalid(format!("unknown field '{key}'")));
@@ -566,14 +666,7 @@ pub fn set_metadata(
         }
         updated.push(key.clone());
     }
-    touch(&tx, id, dirtied)?;
-    tx.commit()?;
-
-    Ok(json!({
-        "book_id": id,
-        "updated_fields": updated,
-        "backup": backup.to_string_lossy(),
-    }))
+    Ok(updated)
 }
 
 fn apply_scalar(tx: &Transaction<'_>, id: i64, key: &str, value: &Value) -> Result<(), BookError> {
@@ -1212,6 +1305,18 @@ mod tests {
         let forced = ensure_backup(&lib, true)?;
         assert_ne!(first, forced);
         assert!(forced.is_file());
+        Ok(())
+    }
+
+    #[test]
+    fn init_creates_an_openable_library() -> Result<(), BookError> {
+        let tmp = tempfile::tempdir().map_err(BookError::Io)?;
+        let target = tmp.path().join("fresh");
+        let created = init_library(&target)?;
+        assert_eq!(created["created"], true);
+        let lib = Library::open(&target)?;
+        assert_eq!(lib.stats()?["books"], 0);
+        assert!(matches!(init_library(&target), Err(BookError::Invalid(_))));
         Ok(())
     }
 

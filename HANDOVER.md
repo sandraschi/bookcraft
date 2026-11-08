@@ -1,7 +1,7 @@
 # HANDOVER - `bookcraft`
 
 **Last updated:** 2026-11-05
-**Phase:** Wave 2, PLAN #8 - v0.2.0 L1 + L2 + L3 shipped and verified.
+**Phase:** Wave 2, PLAN #8 - v0.5.0 L1 + L2 + L3 shipped and verified (covers, Read view, bulk marks).
 **Started in:** Antigravity (`agy`), scaffold only (workspace + L1 `lib.rs` dispatch).
 **Continued in:** opencode.
 
@@ -75,10 +75,10 @@ that verification (not the live library) is what the tests cover.
    command parity; the duplication is acknowledged and parked, not shipped as two crafts.
 4. **Remaining polish (optional):** cover image rendering, list pagination beyond 100,
    `egui_kittest` golden screenshots, installer/CI packaging.
-5. **Phase B (next):** catalog rename/merge, duplicate detection, series-gap and
-   unread-priority reports, CSV/JSON export, TOC excerpts, open/random, smart
-   collections. See `docs/PARITY.md`.
-6. **Repo packaging:** no `glama.json`, `llms.txt`, `CONTRIBUTING.md`, installer or CI file
+5. **Phase B: DONE 2026-11-05 (v0.4.0)** - renames, analytics, export, excerpts,
+   open/random, collections, bulk update, init. `book/catalog-roundtrip` recipe green.
+6. **Phase C (open):** semantic search/RAG, online metadata fetch, OPDS/server mode.
+7. **Repo packaging:** no `glama.json`, `llms.txt`, `CONTRIBUTING.md`, installer or CI file
    yet. Add when the repo is prepared for publication - do not claim them now.
 
 ## Blockers / traps

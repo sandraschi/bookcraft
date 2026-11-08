@@ -1,0 +1,7 @@
+== bookcraft 0.5.0 ==
+building...
+second exe: D:\Dev\repos\bookcraft\target\release\bookcraft-cli.exe
+wrote D:\Dev\repos\bookcraft\dist\bookcraft-0.5.0-windows-x64-portable.zip
+sha256 6c915ac7d1b57828d175076373d3d384003e55e86709081e52e1a0a35f79c6b9
+dry-run: publish with -Publish, or manually:
+gh release create v0.5.0 dist/bookcraft-0.5.0-windows-x64-portable.zip dist/SHA256SUMS.txt --repo sandraschi/bookcraft --title "bookcraft 0.5.0 (alpha)" --prerelease

@@ -1,0 +1,1 @@
+6c915ac7d1b57828d175076373d3d384003e55e86709081e52e1a0a35f79c6b9  bookcraft-0.5.0-windows-x64-portable.zip

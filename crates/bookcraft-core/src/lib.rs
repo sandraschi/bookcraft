@@ -10,7 +10,9 @@
 #![deny(clippy::unimplemented)]
 #![deny(clippy::todo)]
 
+pub mod catalog;
 pub mod convert;
+pub mod extract;
 pub mod ingest;
 pub mod library;
 pub mod write;
@@ -204,6 +206,28 @@ fn require_str<'a>(args: &'a Value, key: &str) -> Result<&'a str, BookError> {
     arg_str(args, key).ok_or_else(|| BookError::Invalid(format!("missing '{key}'")))
 }
 
+fn arg_ids(args: &Value) -> Result<Vec<i64>, BookError> {
+    match args.get("ids") {
+        Some(Value::Array(items)) => items
+            .iter()
+            .map(|v| {
+                v.as_i64()
+                    .ok_or_else(|| BookError::Invalid("ids must be integers".into()))
+            })
+            .collect(),
+        Some(Value::String(s)) => s
+            .split(',')
+            .map(str::trim)
+            .filter(|p| !p.is_empty())
+            .map(|p| {
+                p.parse::<i64>()
+                    .map_err(|_| BookError::Invalid("ids must be integers".into()))
+            })
+            .collect(),
+        _ => Err(BookError::Invalid("missing 'ids'".into())),
+    }
+}
+
 fn root_of(args: &Value) -> Option<PathBuf> {
     arg_str(args, "root")
         .map(PathBuf::from)
@@ -302,6 +326,16 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value, BookError> {
             let path = write::ensure_backup(&lib, force)?;
             json!({"backup": path.to_string_lossy()})
         }
+        "init" => {
+            let raw = arg_str(args, "library")
+                .map(PathBuf::from)
+                .or_else(|| std::env::var_os("BOOKCRAFT_LIBRARY").map(PathBuf::from))
+                .ok_or_else(|| {
+                    BookError::Invalid("no library: pass 'library' or set BOOKCRAFT_LIBRARY".into())
+                })?;
+            ensure_within(root, &raw)?;
+            write::init_library(&raw)?
+        }
         "update" => {
             let lib = library_of(args, root)?;
             let id =
@@ -366,6 +400,88 @@ pub fn dispatch(op: &str, args: &Value) -> Result<Value, BookError> {
                 arg_i64(args, "id").ok_or_else(|| BookError::Invalid("missing 'id'".into()))?;
             let format = require_str(args, "format")?;
             write::remove_format(&lib, id, format)?
+        }
+        "rename" => {
+            let lib = library_of(args, root)?;
+            let kind = require_str(args, "kind")?;
+            let old = require_str(args, "old")?;
+            let new = require_str(args, "new")?;
+            catalog::rename_vocab(&lib, kind, old, new)?
+        }
+        "duplicates" => {
+            let lib = library_of(args, root)?;
+            catalog::duplicates(&lib, limit)?
+        }
+        "series_gaps" => {
+            let lib = library_of(args, root)?;
+            catalog::series_gaps(&lib)?
+        }
+        "unread" => {
+            let lib = library_of(args, root)?;
+            catalog::unread(&lib, limit)?
+        }
+        "reading_stats" => {
+            let lib = library_of(args, root)?;
+            catalog::reading_stats(&lib)?
+        }
+        "export" => {
+            let lib = library_of(args, root)?;
+            let format = require_str(args, "format")?;
+            let out = PathBuf::from(require_str(args, "out")?);
+            extract::export(&lib, format, &out, root, arg_str(args, "query"))?
+        }
+        "excerpt" => {
+            let lib = library_of(args, root)?;
+            let id =
+                arg_i64(args, "id").ok_or_else(|| BookError::Invalid("missing 'id'".into()))?;
+            let chapter = arg_i64(args, "chapter").unwrap_or(0).max(0) as usize;
+            let chars = arg_i64(args, "chars").unwrap_or(2000).max(1) as usize;
+            let offset = arg_i64(args, "offset").unwrap_or(0).max(0) as usize;
+            extract::excerpt(&lib, id, arg_str(args, "format"), chapter, chars, offset)?
+        }
+        "open" => {
+            let lib = library_of(args, root)?;
+            let id =
+                arg_i64(args, "id").ok_or_else(|| BookError::Invalid("missing 'id'".into()))?;
+            extract::open_book(&lib, id, arg_str(args, "format"))?
+        }
+        "random" => {
+            let lib = library_of(args, root)?;
+            extract::random_book(
+                &lib,
+                arg_str(args, "tag"),
+                arg_str(args, "author"),
+                arg_str(args, "format"),
+            )?
+        }
+        "collection_save" => {
+            let lib = library_of(args, root)?;
+            let name = require_str(args, "name")?;
+            let query = require_str(args, "query")?;
+            catalog::collection_save(&lib, name, query)?
+        }
+        "collection_list" => {
+            let lib = library_of(args, root)?;
+            catalog::collection_list(&lib)?
+        }
+        "collection_run" => {
+            let lib = library_of(args, root)?;
+            let name = require_str(args, "name")?;
+            catalog::collection_run(&lib, name, limit)?
+        }
+        "collection_delete" => {
+            let lib = library_of(args, root)?;
+            let name = require_str(args, "name")?;
+            catalog::collection_delete(&lib, name)?
+        }
+        "bulk_update" => {
+            let lib = library_of(args, root)?;
+            let ids = arg_ids(args)?;
+            let fields = args
+                .get("fields")
+                .and_then(Value::as_object)
+                .ok_or_else(|| BookError::Invalid("missing 'fields' object".into()))?;
+            write::bulk_update(&lib, &ids, fields)?
         }
         other => return Err(BookError::Invalid(format!("unknown operation '{other}'"))),
     };

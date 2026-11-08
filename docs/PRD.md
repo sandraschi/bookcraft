@@ -47,6 +47,21 @@ bookcraft-cli add-book --file FILE [--title T --authors A --tags T ...] | --empt
 bookcraft-cli remove-book --id ID [--permanent]
 bookcraft-cli add-format --id ID --file FILE
 bookcraft-cli remove-format --id ID --format FMT
+bookcraft-cli rename --kind tag|author|series|publisher --old OLD --new NEW
+bookcraft-cli duplicates [--limit N]
+bookcraft-cli series-gaps
+bookcraft-cli unread [--limit N]
+bookcraft-cli reading-stats
+bookcraft-cli export --format csv|json --out FILE [--query TEXT]
+bookcraft-cli excerpt --id ID [--format F] [--chapter N --chars N --offset N]
+bookcraft-cli open --id ID [--format F]
+bookcraft-cli random [--tag T --author A --format F]
+bookcraft-cli collection-save --name NAME --query TEXT
+bookcraft-cli collection-list
+bookcraft-cli collection-run --name NAME [--limit N]
+bookcraft-cli collection-delete --name NAME
+bookcraft-cli bulk-update --ids "1,2,3" [--set key=value ...]
+bookcraft-cli init
 bookcraft-cli convert --id ID --to FORMAT [--from FORMAT] --out-dir DIR
 bookcraft-cli ingest  --html FILE --out FILE [--title TEXT]
 bookcraft-cli tools
@@ -93,12 +108,14 @@ Fixtures must be repository-local and DRM-free. No real library path goes into a
 
 ## 7. Open decisions
 
-1. **L3 app: built 2026-11-05.** `bookcraft-app` ships eight views (Status, Library,
-   Search, Grep, Stats, Convert, Ingest, Manage) over the same in-process `dispatch`.
-   Covers show as paths only; image rendering is a follow-up, not a claim.
+1. **L3 app: built 2026-11-05, beautified the same day.** `bookcraft-app` ships eleven
+   views over the same in-process `dispatch`: covers render from the library's own
+   files, the Read view pages chapters in-shelf, the Library list multi-selects into
+   bulk actions. Warm paper-and-amber theme throughout.
 2. **Comic/manga specifics:** CBZ/CBR are convertible through `ebook-convert`; a dedicated
    page-count/cover path is not implemented.
 3. **Naming:** settled - BookCraft is the craft; `rust-calibre-mcp` stays as the richer
    read-only dashboard (see HANDOVER). A hard cutover waits on full parity.
-4. **Catalog analytics next:** tag/author/series rename and merge, duplicate detection,
-   series-gap and unread-priority reports, CSV/JSON export. Recorded as Phase B.
+4. **Phase B: DONE 2026-11-05** (v0.4.0) - renames, analytics, export, excerpts,
+   open/random, collections, bulk update, init. See `docs/PARITY.md`.
+5. **Phase C (open):** semantic search/RAG, online metadata fetch, OPDS/server mode.

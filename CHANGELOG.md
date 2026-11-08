@@ -2,6 +2,46 @@
 
 All notable changes to BookCraft. Dates are real clock dates, not guesses.
 
+## 0.5.0 - 2026-11-05
+
+The beautiful update. All crates bumped to 0.5.0; no protocol changes (30 MCP tools).
+
+### Added
+
+- **Cover art in the shelf:** `cover_rgba` decodes and thumbnails covers in L1; the
+  Library detail pane shows the cover beside a large title, author, series, formats
+  and star rating. Textures are cached per book.
+- **In-shelf reading:** new Read view with chapter prev/next navigation over the
+  `excerpt` verb, one-click from any book card.
+- **Multi-select bulk work:** checkbox marks in the Library list, Trash-marked in one
+  pass, and one click carries the marks into Manage for bulk edits.
+- **Warm paper-and-amber theme** across the whole shelf, with larger titles.
+
+### Notes
+
+- Covers are decoded from the library's own `cover.jpg` files; nothing is downloaded.
+- Non-image or missing covers simply show no art - no placeholder boxes, no errors.
+
+## 0.4.0 - 2026-11-05
+
+Phase B: catalog management and take-out. All crates bumped to 0.4.0.
+
+### Added
+
+- **Catalog (`catalog.rs`):** `rename` for tags/authors/series/publishers (merge-safe,
+  sorts recomputed), `duplicates`, `series_gaps`, `unread`, `reading_stats`,
+  `collection_save`/`list`/`run`/`delete` (smart saved searches outside the library).
+- **Take-out (`extract.rs`):** `export` to CSV/JSON, `excerpt` with paginated EPUB
+  chapters (real OPF/manifest/spine parsing) and TXT windows, `open` in the system
+  viewer, `random` pick with filters.
+- **Bulk:** `bulk_update` applies one field map to many books in a single transaction
+  (all-or-nothing), plus `init` to bootstrap a fresh library.
+- **L2:** 15 new CLI verbs and MCP tools (30 total). **L3:** Catalog and Share views,
+  bulk update in Manage, extended `--smoke`.
+- 45 tests green, including an OPF regression test for the multi-item manifest bug
+  found live, and fixture libraries built from the shared verbatim Calibre schema
+  (`src/schema.sql`).
+
 ## 0.3.0 - 2026-11-05
 
 The write path. BookCraft is now a full manager, not a read-only subset. All crates
