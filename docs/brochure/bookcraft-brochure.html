@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BookCraft v1.0 — Technical Brochure &amp; Operator Handbook</title>
+  <meta name="author" content="Sandra Schipal" />
+  <style>
+    @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.55;
+      font-size: 10.2pt;
+      margin: 0;
+      padding: 0;
+    }
+    .cover {
+      background: linear-gradient(145deg, #090d16 0%, #0f172a 55%, #0c4a6e 100%);
+      color: #f8fafc;
+      padding: 44px 40px 48px 40px;
+      border-radius: 14px;
+      margin-bottom: 28px;
+      page-break-after: always;
+    }
+    .cover-kicker {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid #38bdf8;
+      color: #7dd3fc;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 18px;
+    }
+    .cover h1 {
+      font-size: 32pt;
+      line-height: 1.1;
+      margin: 0 0 12px 0;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .cover h2 {
+      font-size: 13.5pt;
+      font-weight: 400;
+      color: #bae6fd;
+      margin: 0 0 26px 0;
+    }
+    .cover-grid {
+      display: table;
+      width: 100%;
+      margin-top: 22px;
+      border-collapse: separate;
+      border-spacing: 10px;
+    }
+    .cover-stat {
+      display: table-cell;
+      width: 25%;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .cover-stat .num {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #38bdf8;
+      display: block;
+    }
+    .cover-stat .lbl {
+      font-size: 8pt;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .cover-footer {
+      margin-top: 28px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.3);
+      font-size: 9pt;
+      color: #94a3b8;
+    }
+    h2.section-title {
+      font-size: 15pt;
+      color: #0c4a6e;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 5px;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    h3 {
+      font-size: 11.5pt;
+      color: #0f172a;
+      margin-top: 16px;
+      margin-bottom: 6px;
+    }
+    p { margin: 0 0 9px 0; }
+    ul { margin: 6px 0 12px 0; padding-left: 20px; }
+    li { margin-bottom: 4px; }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px 0;
+      font-size: 9pt;
+    }
+    table.data-table th {
+      background: #0f172a;
+      color: #f8fafc;
+      text-align: left;
+      padding: 6px 8px;
+      font-weight: 700;
+    }
+    table.data-table td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    table.data-table tr:nth-child(even) td { background: #f8fafc; }
+    code, pre {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 8.8pt;
+    }
+    code {
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 11px 14px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-kicker">ArtCraft Fleet Technical Brochure &middot; Series #3</div>
+    <h1>BookCraft v1.0</h1>
+    <h2>Full-power Calibre library manager in pure Rust: search, inspect, edit, add, remove,</h2>
+
+    <svg viewBox="0 0 760 165" width="100%" height="165" xmlns="http://www.w3.org/2000/svg" style="margin: 10px 0 16px 0;">
+      <rect x="2" y="2" width="756" height="161" rx="12" fill="#0b1322" stroke="#38bdf8" stroke-width="1.5"/>
+      <rect x="24" y="22" width="200" height="120" rx="8" fill="#1e293b" stroke="#67e8f9" stroke-width="1.5"/>
+      <text x="124" y="52" fill="#67e8f9" font-size="13" font-weight="bold" text-anchor="middle">L3: bookcraft-app</text>
+      <text x="124" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">Native eframe/egui Studio</text>
+      <text x="124" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">In-Process Core Dispatch</text>
+      <text x="124" y="118" fill="#34d399" font-size="9.5" text-anchor="middle">Zero HTTP / Port Overhead</text>
+
+      <rect x="280" y="22" width="200" height="120" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="380" y="52" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">L2: bookcraft-mcp</text>
+      <text x="380" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">CLI + Stdio MCP 2024-11-05</text>
+      <text x="380" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">Human Verbs &amp; Agent Tools</text>
+      <text x="380" y="118" fill="#34d399" font-size="9.5" text-anchor="middle">Deterministic JSON Output</text>
+
+      <rect x="536" y="22" width="200" height="120" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+      <text x="636" y="52" fill="#34d399" font-size="13" font-weight="bold" text-anchor="middle">L1: bookcraft-core</text>
+      <text x="636" y="76" fill="#e2e8f0" font-size="10" text-anchor="middle">Single dispatch() Engine</text>
+      <text x="636" y="98" fill="#fcd34d" font-size="9.5" text-anchor="middle">deny(unwrap/expect/panic)</text>
+      <text x="636" y="118" fill="#94a3b8" font-size="9.5" text-anchor="middle">Pre-Write Backups &amp; Guards</text>
+
+      <line x1="224" y1="82" x2="280" y2="82" stroke="#38bdf8" stroke-width="2"/>
+      <line x1="480" y1="82" x2="536" y2="82" stroke="#10b981" stroke-width="2"/>
+    </svg>
+
+    <div class="cover-grid">
+      <div class="cover-stat">
+        <span class="num">v1.0</span>
+        <span class="lbl">Release Version</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">3 Crates</span>
+        <span class="lbl">Workspace Tiers</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">7101</span>
+        <span class="lbl">Pure-Rust LOC</span>
+      </div>
+      <div class="cover-stat">
+        <span class="num">6-Gate</span>
+        <span class="lbl">ArtCraft Verified</span>
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      <strong>Repository:</strong> <code>D:\Dev\repos\bookcraft</code> &middot;
+      <strong>Standard:</strong> <code>CRAFT_BROCHURE_STANDARD.md</code> &middot;
+      <strong>Compiled via:</strong> <code>BookCraft v0.5.0</code>
+    </div>
+  </div>
+
+  <p>Full-power Calibre library manager in pure Rust: search, inspect, edit, add, remove,</p>
+<p>convert, and ingest for the Storytold ArtCraft suite.</p>
+<p>One binary, three surfaces: <code>bookcraft-cli &lt;verb&gt;</code> for humans and scripts,</p>
+<p><code>bookcraft-cli mcp</code> for agents over stdio, and the <code>bookcraft-app</code> desktop shelf.</p>
+<p>All three call <code>bookcraft_core::dispatch</code>, so they cannot disagree.</p>
+<p>**Status: v0.5.0 - L1 core, L2 CLI/MCP (30 tools) and the L3 shelf (11 views: now with</p>
+<p>covers, in-shelf reading and multi-select bulk work), all verified (46 tests).</p>
+<p>Democraft recipes live in <code>democraft-mcp</code>. See <code>HANDOVER.md</code>.**</p>
+<h2 class="section-title">Guarantees</h2>
+<ul>
+<li><strong>Writes go through Calibre&#39;s own rules.</strong> Reads open <code>metadata.db</code> read-only. Every</li>
+</ul>
+<p>mutation is direct SQL inside one IMMEDIATE transaction with a 30-second busy timeout,</p>
+<p>registering the same <code>title_sort</code>/<code>uuid4</code> functions Calibre&#39;s triggers call.</p>
+<p><code>calibredb</code> is deliberately not used: it refuses every local operation while any Calibre</p>
+<p>program runs. A database that is not a Calibre library is rejected on open.</p>
+<ul>
+<li><strong>A backup is taken first.</strong> Every mutation copies <code>metadata.db</code> (plus the full-text</li>
+</ul>
+<p>index) to a timestamped backup under <code>%LOCALAPPDATA%\BookCraft\backups</code> (reused while</p>
+<p>younger than 120 s); the backup path is in every mutation result. <code>book backup</code> takes</p>
+<p>one on demand.</p>
+<ul>
+<li><strong>Conversion output never overwrites.</strong> <code>bookcraft convert</code> writes into the <code>--out_dir</code> you</li>
+</ul>
+<p>name and picks <code>&lt;title&gt;-2.&lt;ext&gt;</code> when the name is taken.</p>
+<ul>
+<li><strong>Removed books are recoverable.</strong> <code>remove-book</code> moves the book directory to the trash</li>
+</ul>
+<p>area beside the backups; only <code>--permanent</code> deletes. The database row is always removed</p>
+<p>through Calibre&#39;s own cascade trigger.</p>
+<ul>
+<li><strong>Confinement is enforced when you ask for it.</strong> Pass <code>--root DIR</code> (or <code>BOOKCRAFT_ROOT</code>) and</li>
+</ul>
+<p>every library, input and output path must resolve beneath it, including <code>..</code> traversal.</p>
+<ul>
+<li><strong>No secrets, no network.</strong> Readly ingest takes a *saved* HTML page; the live browser path</li>
+</ul>
+<p>stays in <code>readly-mcp</code>.</p>
+<h2 class="section-title">Quickstart</h2>
+<pre>
+# Build
+cargo build --release -p bookcraft-mcp
+
+# Is the converter engine present? What is in the library?
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; status
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; stats
+
+# Find a book, then read its full record
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; search --query &quot;dune&quot;
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; info --id 42 --json
+
+# Search book text when Calibre built its full-text index (reports which engine answered)
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; grep --pattern &quot;blacksmith&quot;
+
+# Convert one book (needs Calibre&#39;s ebook-convert on PATH or BOOKCRAFT_EBOOK_CONVERT)
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; convert --id 42 --from EPUB --to txt --out-dir .\outbox
+
+# Edit metadata (backup is automatic; fields: title authors tags series series_index
+# publisher rating isbn languages comments pubdate identifiers)
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; update --id 42 --set title=&quot;Dune&quot; --set tags=&quot;sci-fi, classic&quot; --set rating=4
+
+# Add and remove books (add --empty for a record without files)
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; add-book --file .\dune.txt --title &quot;Dune&quot; --authors &quot;Frank Herbert&quot;
+.\target\release\bookcraft-cli.exe --library &quot;D:\Books\Calibre Library&quot; remove-book --id 42
+
+# Turn a saved article page into Markdown
+.\target\release\bookcraft-cli.exe ingest --html .\tests\fixtures\sample-issue.html --out .\outbox\issue.md
+
+# MCP server (stdio)
+.\target\release\bookcraft-cli.exe mcp
+
+# Desktop shelf (same core, in-process; --smoke runs the headless checks)
+.\target\debug\bookcraft-app.exe --smoke
+.\target\debug\bookcraft-app.exe
+</pre>
+<h2 class="section-title">Verbs</h2>
+<table class="data-table"><thead><tr>
+<th>Verb</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>status</code></td>
+<td>Engine (<code>ebook-convert</code>) and optional library health</td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td>Books, newest first (<code>--limit</code>, <code>--offset</code>)</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>Substring match on title, author sort, authors, series, tags, descriptions</td>
+</tr>
+<tr>
+<td><code>info</code></td>
+<td>Full record: description, format files with real paths, cover</td>
+</tr>
+<tr>
+<td><code>grep</code></td>
+<td>Book text via <code>full-text-search.db</code> when present, else titles/descriptions</td>
+</tr>
+<tr>
+<td><code>stats</code></td>
+<td>Counts and format distribution</td>
+</tr>
+<tr>
+<td><code>convert</code></td>
+<td><code>ebook-convert</code> into <code>--out-dir</code>, with the source format you choose</td>
+</tr>
+<tr>
+<td><code>ingest</code></td>
+<td>Saved HTML page -&gt; Markdown artifact (front matter + body)</td>
+</tr>
+<tr>
+<td><code>schema</code></td>
+<td>Dump the Calibre schema (<code>sqlite_master</code>): tables, indexes, triggers</td>
+</tr>
+<tr>
+<td><code>backup</code></td>
+<td>Timestamped metadata backup outside the library (<code>--force</code> for a fresh one)</td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td>Set metadata fields on one book (<code>--set key=value</code>, repeatable)</td>
+</tr>
+<tr>
+<td><code>add-book</code></td>
+<td>Add a book file, or an empty record with <code>--empty</code></td>
+</tr>
+<tr>
+<td><code>remove-book</code></td>
+<td>Remove one book (Recycle Bin unless <code>--permanent</code>)</td>
+</tr>
+<tr>
+<td><code>add-format</code></td>
+<td>Attach one format file to a book (replaces the format when present)</td>
+</tr>
+<tr>
+<td><code>remove-format</code></td>
+<td>Drop one format from a book; a no-op when absent</td>
+</tr>
+<tr>
+<td><code>rename</code></td>
+<td>Rename a tag/author/series/publisher (<code>--kind</code>, merges when the new name exists)</td>
+</tr>
+<tr>
+<td><code>duplicates</code></td>
+<td>Books sharing a normalised title</td>
+</tr>
+<tr>
+<td><code>series-gaps</code></td>
+<td>Series with missing volume numbers</td>
+</tr>
+<tr>
+<td><code>unread</code></td>
+<td>Books never opened</td>
+</tr>
+<tr>
+<td><code>reading-stats</code></td>
+<td>Totals, read/unread, ratings, years, top tags/authors</td>
+</tr>
+<tr>
+<td><code>export</code></td>
+<td>Library (or one search) as CSV or JSON into <code>--out</code></td>
+</tr>
+<tr>
+<td><code>excerpt</code></td>
+<td>Paginated chapter text from EPUB, raw window from TXT</td>
+</tr>
+<tr>
+<td><code>open</code></td>
+<td>Open the best file with the system viewer</td>
+</tr>
+<tr>
+<td><code>random</code></td>
+<td>A random book, optionally filtered</td>
+</tr>
+<tr>
+<td><code>collection-save</code> / <code>collection-list</code> / <code>collection-run</code> / <code>collection-delete</code></td>
+<td>Named saved searches</td>
+</tr>
+<tr>
+<td><code>bulk-update</code></td>
+<td>Same fields on many books, all-or-nothing (<code>--ids 1,2,3</code>)</td>
+</tr>
+<tr>
+<td><code>tools</code></td>
+<td>Print the MCP tool surface as JSON</td>
+</tr>
+<tr>
+<td><code>mcp</code></td>
+<td>Run the MCP 2024-11-05 stdio server</td>
+</tr>
+</tbody></table>
+<p>Every verb accepts <code>--json</code>. The MCP surface exposes 30 tools (<code>book_status</code>,</p>
+<p><code>book_list</code>, <code>book_search</code>, <code>book_info</code>, <code>book_grep</code>, <code>book_stats</code>, <code>book_schema</code>,</p>
+<p><code>book_backup</code>, <code>book_update</code>, <code>book_add</code>, <code>book_remove</code>, <code>book_add_format</code>,</p>
+<p><code>book_remove_format</code>, <code>book_rename</code>, <code>book_duplicates</code>, <code>book_series_gaps</code>,</p>
+<p><code>book_unread</code>, <code>book_reading_stats</code>, <code>book_export</code>, <code>book_excerpt</code>, <code>book_open</code>,</p>
+<p><code>book_random</code>, <code>book_collection_save</code>, <code>book_collection_list</code>, <code>book_collection_run</code>,</p>
+<p><code>book_collection_delete</code>, <code>book_bulk_update</code>, <code>book_convert</code>, <code>book_ingest</code>,</p>
+<p><code>book_init</code>) and accepts dotted ids too (<code>book.status</code>, …).</p>
+<p>Full detail: <code>docs/TOOLS.md</code>.</p>
+<h2 class="section-title">Environment</h2>
+<table class="data-table"><thead><tr>
+<th>Variable</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>BOOKCRAFT_LIBRARY</code></td>
+<td>Default Calibre library directory or <code>metadata.db</code> path</td>
+</tr>
+<tr>
+<td><code>BOOKCRAFT_ROOT</code></td>
+<td>Default confinement root</td>
+</tr>
+<tr>
+<td><code>BOOKCRAFT_EBOOK_CONVERT</code></td>
+<td>Explicit <code>ebook-convert</code> path (overrides PATH discovery)</td>
+</tr>
+</tbody></table>
+<p>If <code>ebook-convert</code> is absent, <code>status</code> reports <code>{&quot;status&quot;:&quot;down&quot;}</code> and <code>convert</code> fails with</p>
+<p>an actionable error; nothing pretends to have converted.</p>
+<h2 class="section-title">Build and verify</h2>
+<pre>
+just ci          # fmt-check + clippy -D warnings + cargo test
+just run-cli
+just run-ingest
+</pre>
+<p>The 6-gate ArtCraft bar (<code>mcp-central-docs/standards/RUST_ARTCRAFT_STANDARD.md</code> &#167;2):</p>
+<p>clippy clean with <code>unwrap/expect/panic/todo/unimplemented</code> denied, tests green, `cargo fmt</p>
+<p>--check<code> clean, MCP stdio probe byte-clean, </code>Cargo.lock<code> committed, </code>CHANGELOG.md` current.</p>
+<h2 class="section-title">Docs</h2>
+<ul>
+<li><code>docs/PRD.md</code> - model, verbs, boundaries, recipe targets</li>
+<li><code>docs/TOOLS.md</code> - MCP tool reference</li>
+<li><code>docs/UI_PARITY.md</code> - shelf contract and known limits</li>
+<li><code>docs/PARITY.md</code> - calibre-mcp parity checklist and what is deliberately out of scope</li>
+<li><code>INSTALL.md</code> - prerequisites and client config</li>
+<li><code>AGENTS.md</code> - containment rules for agents working here</li>
+<li><code>HANDOVER.md</code> - what was done, what is next, what was deliberately skipped</li>
+</ul>
+<h2 class="section-title">Status — does today / next week / non-goals</h2>
+<p><strong>Does today:</strong> v0.3.0, 3-tier (core/mcp/app); 15 MCP tools + 17 CLI</p>
+<p>verbs; 34 test fns; backup-before-write, trash-not-delete; PARITY docs;</p>
+<p>cutover made (BookCraft is the craft, rust-calibre-mcp stays the</p>
+<p>read-only dashboard).</p>
+<p><strong>Next week:</strong> Phase B (catalog rename/merge, analytics, export);</p>
+<p>Calibre-version matrix; convert-roundtrip timing baseline.</p>
+<p><strong>Non-goals:</strong> no cloud sync; no living-room-server scope creep — library</p>
+<p>manager, versioned honestly.</p>
+<h2 class="section-title">Lineage — the Storytold craft-app pattern</h2>
+<p>Storytold ArtCraft (storytold/artcraft — &quot;the IDE for artists&quot;) was the starting point. The 16 craft apps in the Storytold stable each ship one binary that is both the human CLI and the agent MCP server (stdio), headless-first, with <code>run.json</code> + report artifacts. That modus operandi and harness is what this repo implements; the code here is independent, the pattern is shared.</p>
+
+  <div class="page-break"></div><h2 class="section-title">Product Requirements &amp; Architecture Specification</h2><p><strong>Source plan:</strong> <code>mcp-central-docs/projects/craft-fleet-rebuild/PLAN.md</code> &#167;5 #8,</p>
+<p>corrected 2026-11-05: BookCraft is a full-power Calibre manager, not a thin subset.</p>
+<p><strong>Bucket:</strong> A (SQLite + CLI + files) -&gt; Pure-Rust ArtCraft</p>
+<p><strong>Status:</strong> v0.3.0 L1/L2/L3 shipped with the write path; catalog analytics next.</p>
+<h2 class="section-title">1. Model</h2>
+<p>A <strong>book</strong> is one Calibre row: id, uuid, title, sort, author_sort, authors[], series,</p>
+<p>series_index, tags[], formats[], rating, pubdate, last_modified, path, cover,</p>
+<p>description, plus the real files on disk.</p>
+<p>The same model covers EPUB/PDF prose, PDF magazines, and CBZ/CBR comics because Calibre</p>
+<p>stores all of them the same way. BookCraft does not distinguish &quot;book&quot; from &quot;issue&quot; in its</p>
+<p>verbs; the format and path tell you what it is.</p>
+<h2 class="section-title">2. Seam</h2>
+<table class="data-table"><thead><tr>
+<th>Concern</th>
+<th>Owner</th>
+</tr></thead><tbody>
+<tr>
+<td>Library storage, metadata CRUD, covers, full text</td>
+<td><strong>BookCraft</strong> (direct SQL under Calibre&#39;s rules)</td>
+</tr>
+<tr>
+<td>Format conversion</td>
+<td><strong>BookCraft</strong> -&gt; Calibre <code>ebook-convert</code></td>
+</tr>
+<tr>
+<td>Saved-page HTML -&gt; Markdown</td>
+<td><strong>BookCraft</strong> <code>ingest</code></td>
+</tr>
+<tr>
+<td>Live magazine scraping, login, browser</td>
+<td><code>readly-mcp</code> (unchanged)</td>
+</tr>
+<tr>
+<td>Server-side library service, accounts</td>
+<td>not a craft (<code>calibre-mcp</code> server mode)</td>
+</tr>
+<tr>
+<td>Calibre desktop GUI</td>
+<td>Calibre itself (BookCraft never drives it)</td>
+</tr>
+</tbody></table>
+<p>Correction 2026-11-05: the original plan said &quot;library managers are not crafts&quot;. That was</p>
+<p>the fuckup this revision fixes - BookCraft manages the library. <code>calibredb</code> is not used</p>
+<p>because it refuses every local operation while any Calibre program runs; BookCraft writes</p>
+<p>SQL itself inside Calibre&#39;s own trigger and transaction invariants instead.</p>
+<h2 class="section-title">3. Verbs (normative)</h2>
+<pre>
+bookcraft-cli status
+bookcraft-cli list   --limit N --offset N
+bookcraft-cli search --query TEXT --limit N
+bookcraft-cli info   --id ID
+bookcraft-cli grep   --pattern TEXT --limit N
+bookcraft-cli stats
+bookcraft-cli schema
+bookcraft-cli backup [--force]
+bookcraft-cli update --id ID [--set key=value ...]
+bookcraft-cli add-book --file FILE [--title T --authors A --tags T ...] | --empty
+bookcraft-cli remove-book --id ID [--permanent]
+bookcraft-cli add-format --id ID --file FILE
+bookcraft-cli remove-format --id ID --format FMT
+bookcraft-cli rename --kind tag|author|series|publisher --old OLD --new NEW
+bookcraft-cli duplicates [--limit N]
+bookcraft-cli series-gaps
+bookcraft-cli unread [--limit N]
+bookcraft-cli reading-stats
+bookcraft-cli export --format csv|json --out FILE [--query TEXT]
+bookcraft-cli excerpt --id ID [--format F] [--chapter N --chars N --offset N]
+bookcraft-cli open --id ID [--format F]
+bookcraft-cli random [--tag T --author A --format F]
+bookcraft-cli collection-save --name NAME --query TEXT
+bookcraft-cli collection-list
+bookcraft-cli collection-run --name NAME [--limit N]
+bookcraft-cli collection-delete --name NAME
+bookcraft-cli bulk-update --ids &quot;1,2,3&quot; [--set key=value ...]
+bookcraft-cli init
+bookcraft-cli convert --id ID --to FORMAT [--from FORMAT] --out-dir DIR
+bookcraft-cli ingest  --html FILE --out FILE [--title TEXT]
+bookcraft-cli tools
+bookcraft-cli mcp
+</pre>
+<p><code>update</code> fields: title, authors, tags, series, series_index, publisher, rating (0-5),</p>
+<p>isbn, languages, comments, pubdate, identifiers. Every mutation takes a timestamped</p>
+<p>backup first and reports its path; <code>add-book</code> rejects duplicates unless asked.</p>
+<h2 class="section-title">4. Recipe targets (implemented in <code>democraft-mcp</code>, not here)</h2>
+<p>1. <code>book/search-and-info</code> - search a fixture library, dump one record, assert keys.</p>
+<p>2. <code>book/convert-roundtrip</code> - EPUB -&gt; PDF/TXT, measure bytes; CBZ -&gt; PDF when a comic fixture</p>
+<p>is present.</p>
+<p>3. <code>book/fulltext-find</code> - FTS query with snippet; assert the reported engine.</p>
+<p>4. <code>book/readly-ingest-sim</code> - <code>tests/fixtures/sample-issue.html</code> -&gt; <code>issue.md</code>, assert title</p>
+<p>and word count; never a browser.</p>
+<p>5. <code>book/manage-roundtrip</code> - scratch library, backup, add, update, verify, remove;</p>
+<p>asserts the round-trip payloads (DONE 2026-11-05).</p>
+<p>Fixtures must be repository-local and DRM-free. No real library path goes into a recipe.</p>
+<h2 class="section-title">5. Safety and failure modes</h2>
+<ul>
+<li>Reads open the library read-only; writes run inside one IMMEDIATE transaction with a</li>
+</ul>
+<p>30-second busy timeout, so a held Calibre library fails fast instead of half-writing.</p>
+<ul>
+<li>Every mutation takes a timestamped backup outside the library first and reports it.</li>
+<li><code>remove-book</code> moves files to a trash area by default; only <code>--permanent</code> deletes.</li>
+<li><code>add-book</code> rejects duplicates without writing anything unless <code>duplicates</code>/<code>automerge</code>.</li>
+<li>A non-Calibre <code>metadata.db</code> is rejected on open.</li>
+<li><code>--root</code> confinement covers library, inputs and outputs.</li>
+<li>Conversion never overwrites; the destination is <code>&lt;title&gt;[-n].&lt;ext&gt;</code>.</li>
+<li>Missing <code>ebook-convert</code> -&gt; <code>status: down</code> + actionable error from <code>convert</code>.</li>
+<li>Missing <code>full-text-search.db</code> -&gt; <code>engine: metadata_db</code>, not an empty success.</li>
+<li>Missing format file on disk -&gt; <code>NotFound</code>, not a zero-byte output.</li>
+<li>Readly tokens never enter this repo; live scraping is out of scope.</li>
+</ul>
+<h2 class="section-title">6. Non-goals</h2>
+<ul>
+<li>A server with accounts, OPDS, or a web UI.</li>
+<li>Embedding a converter; Calibre remains the engine.</li>
+<li>Duplicating <code>readly-mcp</code>&#39;s browser automation.</li>
+</ul>
+<h2 class="section-title">7. Open decisions</h2>
+<p>1. <strong>L3 app: built 2026-11-05, beautified the same day.</strong> <code>bookcraft-app</code> ships eleven</p>
+<p>views over the same in-process <code>dispatch</code>: covers render from the library&#39;s own</p>
+<p>files, the Read view pages chapters in-shelf, the Library list multi-selects into</p>
+<p>bulk actions. Warm paper-and-amber theme throughout.</p>
+<p>2. <strong>Comic/manga specifics:</strong> CBZ/CBR are convertible through <code>ebook-convert</code>; a dedicated</p>
+<p>page-count/cover path is not implemented.</p>
+<p>3. <strong>Naming:</strong> settled - BookCraft is the craft; <code>rust-calibre-mcp</code> stays as the richer</p>
+<p>read-only dashboard (see HANDOVER). A hard cutover waits on full parity.</p>
+<p>4. <strong>Phase B: DONE 2026-11-05</strong> (v0.4.0) - renames, analytics, export, excerpts,</p>
+<p>open/random, collections, bulk update, init. See <code>docs/PARITY.md</code>.</p>
+<p>5. <strong>Phase C (open):</strong> semantic search/RAG, online metadata fetch, OPDS/server mode.</p>
+
+  <div class="page-break"></div><h2 class="section-title">Complete MCP Tool &amp; CLI Verb Reference</h2><p>Thirty tools, all routed through <code>bookcraft_core::dispatch</code>. Both <code>book_status</code> and</p>
+<p><code>book.status</code> are accepted (strict MCP hosts reject dots, ArtCraft ids use them).</p>
+<p>Common optional arguments on every tool: <code>library</code> (Calibre directory or <code>metadata.db</code>),</p>
+<p><code>root</code> (confinement root). They default to <code>BOOKCRAFT_LIBRARY</code> / <code>BOOKCRAFT_ROOT</code>, and can be</p>
+<p>set once in the client config.</p>
+<table class="data-table"><thead><tr>
+<th>Tool</th>
+<th>Arguments</th>
+<th>Returns</th>
+</tr></thead><tbody>
+<tr>
+<td><code>book_status</code></td>
+<td>-</td>
+<td><code>app</code>, <code>version</code>, <code>ebook_convert{status,path?}</code>, optional <code>library{status,root,books}</code></td>
+</tr>
+<tr>
+<td><code>book_list</code></td>
+<td><code>limit</code> (1-1000, default 20), <code>offset</code></td>
+<td><code>count</code>, <code>books[]</code> newest first</td>
+</tr>
+<tr>
+<td><code>book_search</code></td>
+<td><code>query</code> (required), <code>limit</code></td>
+<td><code>query</code>, <code>count</code>, <code>books[]</code></td>
+</tr>
+<tr>
+<td><code>book_info</code></td>
+<td><code>id</code> (required)</td>
+<td><code>book</code> with <code>description</code>, <code>format_files[{format,size_bytes,file,path,exists}]</code>, <code>cover_path</code>, <code>uuid</code>, <code>sort</code>, <code>author_sort</code>, <code>last_modified</code></td>
+</tr>
+<tr>
+<td><code>book_grep</code></td>
+<td><code>pattern</code> (required), <code>limit</code></td>
+<td><code>engine</code> (<code>full_text_search_db</code> or <code>metadata_db</code>), <code>count</code>, <code>hits[]</code></td>
+</tr>
+<tr>
+<td><code>book_stats</code></td>
+<td>-</td>
+<td><code>books</code>, <code>authors</code>, <code>tags</code>, <code>series</code>, <code>publishers</code>, cover/description counts, <code>formats[]</code></td>
+</tr>
+<tr>
+<td><code>book_schema</code></td>
+<td>-</td>
+<td><code>count</code>, <code>objects[]</code> with <code>kind</code>, <code>name</code>, <code>sql</code> from <code>sqlite_master</code></td>
+</tr>
+<tr>
+<td><code>book_backup</code></td>
+<td><code>force</code></td>
+<td><code>backup</code> path (fresh copy, or the recent one reused)</td>
+</tr>
+<tr>
+<td><code>book_update</code></td>
+<td><code>id</code>, <code>fields</code> object (required)</td>
+<td><code>book_id</code>, <code>updated_fields[]</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_add</code></td>
+<td><code>file</code> (or <code>empty: true</code>), <code>title</code>, <code>authors</code>, <code>tags</code>, <code>series</code>, <code>series_index</code>, <code>languages</code>, <code>isbn</code>, <code>duplicates</code>, <code>automerge</code></td>
+<td><code>book_id</code>, <code>new</code>, <code>format?</code>, <code>file?</code>, <code>bytes?</code>, <code>merged?</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_remove</code></td>
+<td><code>id</code> (required), <code>permanent</code></td>
+<td><code>book_id</code>, <code>title</code>, <code>permanent</code>, <code>files</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_add_format</code></td>
+<td><code>id</code>, <code>file</code> (required)</td>
+<td><code>book_id</code>, <code>format</code>, <code>new</code>, <code>file</code>, <code>bytes</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_remove_format</code></td>
+<td><code>id</code>, <code>format</code> (required)</td>
+<td><code>book_id</code>, <code>format</code>, <code>removed</code></td>
+</tr>
+<tr>
+<td><code>book_rename</code></td>
+<td><code>kind</code> (<code>tag</code>/<code>author</code>/<code>series</code>/<code>publisher</code>), <code>old</code>, <code>new</code> (required)</td>
+<td><code>kind</code>, <code>from</code>, <code>to</code>, <code>merged</code>, <code>books</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_duplicates</code></td>
+<td><code>limit</code></td>
+<td><code>groups[]</code> with <code>title</code>, <code>count</code>, <code>books[]</code></td>
+</tr>
+<tr>
+<td><code>book_series_gaps</code></td>
+<td>-</td>
+<td><code>series[]</code> with <code>have</code>, <code>missing</code>, <code>volumes[]</code></td>
+</tr>
+<tr>
+<td><code>book_unread</code></td>
+<td><code>limit</code></td>
+<td><code>count</code>, <code>books[]</code>, <code>heuristic</code></td>
+</tr>
+<tr>
+<td><code>book_reading_stats</code></td>
+<td>-</td>
+<td><code>books</code>, <code>read</code>, <code>unread</code>, <code>ratings[]</code>, <code>added_by_year[]</code>, <code>top_tags[]</code>, <code>top_authors[]</code></td>
+</tr>
+<tr>
+<td><code>book_export</code></td>
+<td><code>format</code> (<code>csv</code>/<code>json</code>), <code>out</code> (required), <code>query</code></td>
+<td><code>output</code>, <code>format</code>, <code>count</code>, <code>bytes</code></td>
+</tr>
+<tr>
+<td><code>book_excerpt</code></td>
+<td><code>id</code> (required), <code>format</code>, <code>chapter</code>, <code>chars</code>, <code>offset</code></td>
+<td><code>book_id</code>, <code>title</code>, <code>format</code>, <code>chapters</code>, <code>chapter</code>, <code>chapter_file</code>, <code>text</code>, <code>has_more</code></td>
+</tr>
+<tr>
+<td><code>book_open</code></td>
+<td><code>id</code> (required), <code>format</code></td>
+<td><code>book_id</code>, <code>path</code>, <code>opened</code></td>
+</tr>
+<tr>
+<td><code>book_random</code></td>
+<td><code>tag</code>, <code>author</code>, <code>format</code></td>
+<td><code>book</code> (one random record)</td>
+</tr>
+<tr>
+<td><code>book_collection_save</code></td>
+<td><code>name</code>, <code>query</code> (required)</td>
+<td><code>name</code>, <code>query</code></td>
+</tr>
+<tr>
+<td><code>book_collection_list</code></td>
+<td>-</td>
+<td><code>names[]</code>, <code>collections{}</code></td>
+</tr>
+<tr>
+<td><code>book_collection_run</code></td>
+<td><code>name</code> (required), <code>limit</code></td>
+<td><code>name</code>, <code>query</code>, <code>count</code>, <code>books[]</code></td>
+</tr>
+<tr>
+<td><code>book_collection_delete</code></td>
+<td><code>name</code> (required)</td>
+<td><code>name</code>, <code>deleted</code></td>
+</tr>
+<tr>
+<td><code>book_bulk_update</code></td>
+<td><code>ids</code>, <code>fields</code> object (required)</td>
+<td><code>updated</code>, <code>books[]</code>, <code>backup</code></td>
+</tr>
+<tr>
+<td><code>book_convert</code></td>
+<td><code>id</code>, <code>to</code>, <code>out_dir</code> (required), <code>from</code></td>
+<td><code>output</code>, <code>bytes</code>, <code>from</code>, <code>to</code>, <code>engine</code>, <code>elapsed_ms</code></td>
+</tr>
+<tr>
+<td><code>book_ingest</code></td>
+<td><code>html</code>, <code>out</code> (required), <code>title</code></td>
+<td><code>title</code>, <code>source</code>, <code>output</code>, <code>words</code>, <code>bytes</code></td>
+</tr>
+<tr>
+<td><code>book_init</code></td>
+<td>- (uses <code>library</code>)</td>
+<td><code>library</code>, <code>created</code>, <code>backup</code></td>
+</tr>
+</tbody></table>
+<h2 class="section-title">Return shape</h2>
+<p>Success: a JSON object with <code>&quot;success&quot;: true</code> and the fields above.</p>
+<p>Failure: <code>{&quot;success&quot;: false, &quot;error&quot;: &quot;...&quot;, &quot;error_type&quot;: &quot;not_found|invalid|outside|database|io&quot;}</code>.</p>
+<p>MCP wraps the payload as one <code>text</code> content item and sets <code>isError: true</code> when <code>success</code> is</p>
+<p>false. Nothing is returned as a binary blob.</p>
+<h2 class="section-title">Examples</h2>
+<pre>
+{&quot;name&quot;:&quot;book_search&quot;,&quot;arguments&quot;:{&quot;query&quot;:&quot;hyperart&quot;,&quot;limit&quot;:3}}
+{&quot;name&quot;:&quot;book_info&quot;,&quot;arguments&quot;:{&quot;id&quot;:14362}}
+{&quot;name&quot;:&quot;book_update&quot;,&quot;arguments&quot;:{&quot;id&quot;:14362,&quot;fields&quot;:{&quot;tags&quot;:&quot;sci-fi, classic&quot;,&quot;rating&quot;:4}}}
+{&quot;name&quot;:&quot;book_add&quot;,&quot;arguments&quot;:{&quot;file&quot;:&quot;D:/inbox/dune.txt&quot;,&quot;title&quot;:&quot;Dune&quot;,&quot;authors&quot;:&quot;Frank Herbert&quot;}}
+{&quot;name&quot;:&quot;book_rename&quot;,&quot;arguments&quot;:{&quot;kind&quot;:&quot;tag&quot;,&quot;old&quot;:&quot;sci-fi&quot;,&quot;new&quot;:&quot;Science Fiction&quot;}}
+{&quot;name&quot;:&quot;book_export&quot;,&quot;arguments&quot;:{&quot;format&quot;:&quot;csv&quot;,&quot;out&quot;:&quot;D:/outbox/lib.csv&quot;}}
+{&quot;name&quot;:&quot;book_convert&quot;,&quot;arguments&quot;:{&quot;id&quot;:14362,&quot;from&quot;:&quot;EPUB&quot;,&quot;to&quot;:&quot;txt&quot;,&quot;out_dir&quot;:&quot;D:/outbox&quot;}}
+{&quot;name&quot;:&quot;book_ingest&quot;,&quot;arguments&quot;:{&quot;html&quot;:&quot;tests/fixtures/sample-issue.html&quot;,&quot;out&quot;:&quot;outbox/issue.md&quot;}}
+</pre>
+<h2 class="section-title">Notes</h2>
+<ul>
+<li>Mutations never go through <code>calibredb</code>: it refuses every local operation while any</li>
+</ul>
+<p>Calibre program runs. BookCraft writes SQL itself inside Calibre&#39;s trigger invariants</p>
+<p>(one IMMEDIATE transaction, 30-second busy timeout, <code>title_sort</code>/<code>uuid4</code> registered).</p>
+<ul>
+<li>Every mutation takes a timestamped backup outside the library first and reports it;</li>
+</ul>
+<p><code>book_add</code> rejects duplicates unless <code>duplicates</code> or <code>automerge</code> is set.</p>
+<ul>
+<li><code>book_remove</code> moves files to a trash area by default; only <code>permanent: true</code> deletes.</li>
+<li><code>book_rename</code> merges when the new name exists (deduplicated re-link, then the old row</li>
+</ul>
+<p>goes); the affected books keep correct sorts.</p>
+<ul>
+<li><code>book_excerpt</code> reads EPUB (paginated chapters) and TXT; PDF and comics are refused</li>
+</ul>
+<p>honestly. <code>book_open</code> opens where the server runs, not where the agent sits.</p>
+<ul>
+<li><code>book_convert</code> needs Calibre. Without <code>ebook-convert</code> the call fails with <code>not_found</code>; it</li>
+</ul>
+<p>never fabricates an output file.</p>
+<ul>
+<li><code>book_grep</code> reports which engine answered. A library without <code>full-text-search.db</code> answers</li>
+</ul>
+<p>from titles and descriptions only - that is a scope downgrade, and the tool says so.</p>
+<ul>
+<li>Library, input and output paths must be beneath <code>root</code> when a root is configured.</li>
+</ul>
+
+</body>
+</html>
