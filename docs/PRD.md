@@ -119,3 +119,21 @@ Fixtures must be repository-local and DRM-free. No real library path goes into a
 4. **Phase B: DONE 2026-11-05** (v0.4.0) - renames, analytics, export, excerpts,
    open/random, collections, bulk update, init. See `docs/PARITY.md`.
 5. **Phase C (open):** semantic search/RAG, online metadata fetch, OPDS/server mode.
+
+## 8. UI/UX Architecture & Menu Bar Standard
+
+In accordance with [`CRAFT_MENU_BAR_STANDARD.md`](../../mcp-central-docs/standards/rust-artcraft/CRAFT_MENU_BAR_STANDARD.md):
+- **Pattern 2 (Viewport-Centric Craft Workstation):** Persistent library catalog stage and in-shelf reading viewport with warm paper-and-amber theme. Top quick button row acts as accelerators into the `View` menu. To add a new view or collection inspector:
+  1. Register a visibility toggle in the `View` or `Window` menu.
+  2. Add an entry in the sidebar Shelf / Collection toolbox.
+  3. Wire the action directly into the universal `Command::dispatch` bus.
+- **Top Menu Bar Hierarchy:**
+  - `File`: New Library (`Ctrl+N`), Open Calibre Library (`Ctrl+O`), Open Recent ▸, Save Metadata (`Ctrl+S`), Export Book / Format (`Ctrl+E`), Close Library (`Ctrl+W`), Quit (`Ctrl+Q`).
+  - `Edit`: Undo (`Ctrl+Z`), Redo (`Ctrl+Y`), Cut, Copy, Paste, Select All (`Ctrl+A`), Preferences (`Ctrl+,`).
+  - `View`: Library Grid / Covers, Book Details, Reader Viewport, Series Gaps Analytics, Reading Stats, Theme (`Warm Paper`/`Dark`).
+  - `Insert`: Add Book (`Ctrl+Shift+A`), Add Format, Ingest HTML Issue, Create Smart Collection.
+  - `Modify`: Edit Metadata, Update Cover, Rename Tag / Author / Series, Bulk Edit.
+  - `Commands`: Convert Book Format, Run Full-Text Search (FTS), Scan Duplicates, Backup Database, Vacuum Library.
+  - `Window`: Reset Layout, Library Viewport, Book Inspector, Reader Drawer.
+  - `Help` (Mandatory 5-Dialog Suite): `Command Palette...` (`Ctrl+K`), `Keyboard Shortcuts...` (`F1`), `Project Files & Docs...`, `Licenses & Notices...`, `About BookCraft`.
+- **Behavioral Mechanics:** Smooth `switch_on_hover` between top-level menus, zero-unsafe immediate-mode rendering, and headless `--smoke` parity.
