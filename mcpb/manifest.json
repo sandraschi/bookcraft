@@ -1,0 +1,153 @@
+{
+  "manifest_version": "0.2",
+  "name": "bookcraft",
+  "display_name": "BookCraft",
+  "version": "__VERSION__",
+  "description": "L3 egui desktop shelf for BookCraft (calls bookcraft-core in-process)",
+  "author": {
+    "name": "Sandra Schipal",
+    "url": "https://github.com/sandraschi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandraschi/bookcraft"
+  },
+  "license": "MIT OR Apache-2.0",
+  "server": {
+    "type": "binary",
+    "entry_point": "bookcraft-cli.exe",
+    "mcp_config": {
+      "command": "${__dirname}/bookcraft-cli.exe",
+      "args": [
+        "mcp"
+      ]
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "win32"
+    ]
+  },
+  "tools": [
+    {
+      "name": "book_status",
+      "description": "Report BookCraft version, the ebook-convert engine, and optional library health."
+    },
+    {
+      "name": "book_list",
+      "description": "List books newest first."
+    },
+    {
+      "name": "book_search",
+      "description": "Substring search over title, author sort, authors, series, tags and descriptions."
+    },
+    {
+      "name": "book_info",
+      "description": "Full metadata for one book: description, format files, cover path."
+    },
+    {
+      "name": "book_grep",
+      "description": "Search book text when Calibre's full-text-search.db exists, else titles and descriptions. Returns the engine used."
+    },
+    {
+      "name": "book_stats",
+      "description": "Library-wide book/author/tag/series counts and format distribution."
+    },
+    {
+      "name": "book_schema",
+      "description": "Dump the Calibre schema (sqlite_master): tables, indexes and triggers."
+    },
+    {
+      "name": "book_backup",
+      "description": "Take a timestamped metadata backup outside the library. Writes take one automatically."
+    },
+    {
+      "name": "book_init",
+      "description": "Create a fresh Calibre-shaped library directory. Refuses when one exists."
+    },
+    {
+      "name": "book_update",
+      "description": "Set metadata fields on one book via Calibre itself. Takes a backup first."
+    },
+    {
+      "name": "book_add",
+      "description": "Add a book file (or an empty record with empty=true) via Calibre itself. Takes a backup first."
+    },
+    {
+      "name": "book_remove",
+      "description": "Remove one book via Calibre itself (Recycle Bin unless permanent=true). Takes a backup first."
+    },
+    {
+      "name": "book_add_format",
+      "description": "Attach one format file to a book via Calibre itself (replaces the format when present)."
+    },
+    {
+      "name": "book_remove_format",
+      "description": "Drop one format from a book via Calibre itself. A no-op when absent."
+    },
+    {
+      "name": "book_rename",
+      "description": "Rename a tag, author, series or publisher. Merges when the new name exists."
+    },
+    {
+      "name": "book_duplicates",
+      "description": "Books sharing a normalised title: duplicate candidates."
+    },
+    {
+      "name": "book_series_gaps",
+      "description": "Series with missing volume numbers."
+    },
+    {
+      "name": "book_unread",
+      "description": "Books never opened (or everything when the library has no tracking table)."
+    },
+    {
+      "name": "book_reading_stats",
+      "description": "Totals, read/unread split, rating histogram, additions by year, top tags/authors."
+    },
+    {
+      "name": "book_export",
+      "description": "Export the library (or one search) as CSV or JSON to out."
+    },
+    {
+      "name": "book_excerpt",
+      "description": "Paginated chapter text from an EPUB (or a raw window from a TXT)."
+    },
+    {
+      "name": "book_open",
+      "description": "Open the best file with the system default application (desktop affordance)."
+    },
+    {
+      "name": "book_random",
+      "description": "A random book, optionally filtered by tag, author or format."
+    },
+    {
+      "name": "book_collection_save",
+      "description": "Save a named search (a smart collection)."
+    },
+    {
+      "name": "book_collection_list",
+      "description": "List saved searches."
+    },
+    {
+      "name": "book_collection_run",
+      "description": "Run a saved search."
+    },
+    {
+      "name": "book_collection_delete",
+      "description": "Delete a saved search."
+    },
+    {
+      "name": "book_bulk_update",
+      "description": "Update the same fields on many books, all-or-nothing in one transaction."
+    },
+    {
+      "name": "book_convert",
+      "description": "Convert one book with ebook-convert into out_dir. Never overwrites an existing file."
+    },
+    {
+      "name": "book_ingest",
+      "description": "Turn a saved HTML page into a Markdown artifact (Readly-style ingest without a browser)."
+    }
+  ]
+}
