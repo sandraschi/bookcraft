@@ -1,5 +1,10 @@
 # BookCraft
 
+![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)
+![Rust 1.90+](https://img.shields.io/badge/rust-1.90%2B-orange?logo=rust)
+![MCP stdio](https://img.shields.io/badge/MCP-stdio-purple)
+![ArtCraft harness](https://img.shields.io/badge/ArtCraft-harness-green)
+
 Full-power Calibre library manager in pure Rust: search, inspect, edit, add, remove,
 convert, and ingest for the Storytold ArtCraft suite.
 
@@ -10,6 +15,16 @@ All three call `bookcraft_core::dispatch`, so they cannot disagree.
 **Status: v0.5.0 - L1 core, L2 CLI/MCP (30 tools) and the L3 shelf (11 views: now with
 covers, in-shelf reading and multi-select bulk work), all verified (46 tests).
 Democraft recipes live in `democraft-mcp`. See `HANDOVER.md`.**
+
+## Install
+
+Tell Cursor, Claude, Antigravity, or OpenCode: **Install this.**
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-craft.ps1
+```
+
+Installs the Windows app and the CLI (Start Menu shortcut, CLI on the user PATH). `-RegisterClients` also registers the MCP exe with the IDEs that are installed. `-Clients cursor,claude-desktop` limits that list. `-Mcpb` installs the Claude Desktop extension bundle.
 
 ## Guarantees
 
